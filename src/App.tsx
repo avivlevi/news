@@ -5,7 +5,30 @@ import { ArticleModal } from '@/components/ArticleModal';
 import { clusterArticles } from '@/lib/clustering';
 import type { Cluster, SourceId, NewsApiResponse } from '@/types';
 
+function useDarkMode() {
+  const [dark, setDark] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const stored = localStorage.getItem('theme');
+    if (stored) return stored === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (dark) {
+      root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [dark]);
+
+  return [dark, setDark] as const;
+}
+
 export function App() {
+  const [dark, setDark] = useDarkMode();
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,15 +66,17 @@ export function App() {
           .filter(c => c.articles.length > 0);
 
   return (
-    <div className="min-h-screen bg-background text-foreground" dir="rtl">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300" dir="rtl">
       <NewsHeader
         fetchedAt={fetchedAt}
         activeSource={activeSource}
         onSourceChange={setActiveSource}
+        dark={dark}
+        onToggleDark={() => setDark(d => !d)}
       />
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {error ? (
-          <div className="text-center text-destructive py-12 text-lg">{error}</div>
+          <div className="text-center text-destructive py-16 text-lg">{error}</div>
         ) : (
           <NewsGrid
             clusters={filteredClusters}
