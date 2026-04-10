@@ -1,4 +1,4 @@
-export type SourceId = 'ynet' | 'n12' | 'israelhayom' | 'c14';
+export type SourceId = 'ynet' | 'n12' | 'israelhayom' | 'c14' | 'walla' | 'maariv' | 'globes' | 'haaretz';
 
 export interface Article {
   id: string;

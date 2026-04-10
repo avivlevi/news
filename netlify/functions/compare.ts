@@ -1,7 +1,7 @@
 import type { Handler } from '@netlify/functions';
 import Anthropic from '@anthropic-ai/sdk';
 
-type SourceId = 'ynet' | 'n12' | 'israelhayom' | 'c14';
+type SourceId = 'ynet' | 'n12' | 'israelhayom' | 'c14' | 'walla' | 'maariv' | 'globes' | 'haaretz';
 
 interface ArticleInput {
   source: SourceId;
@@ -11,9 +11,13 @@ interface ArticleInput {
 
 const SOURCE_LABELS: Record<string, string> = {
   ynet: 'ynet',
+  walla: 'וואלה',
   n12: 'N12',
   israelhayom: 'ישראל היום',
+  maariv: 'מעריב',
   c14: 'ערוץ 14',
+  globes: 'גלובס',
+  haaretz: 'הארץ',
 };
 
 export const handler: Handler = async event => {

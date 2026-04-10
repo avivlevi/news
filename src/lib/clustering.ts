@@ -58,7 +58,7 @@ class UnionFind {
   }
 }
 
-const SOURCE_PRIORITY: Article['source'][] = ['ynet', 'n12', 'israelhayom', 'c14'];
+const SOURCE_PRIORITY: Article['source'][] = ['ynet', 'walla', 'n12', 'israelhayom', 'maariv', 'haaretz', 'globes', 'c14'];
 
 export function clusterArticles(articles: Article[]): Cluster[] {
   const THRESHOLD = 0.2;

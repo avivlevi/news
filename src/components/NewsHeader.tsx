@@ -4,16 +4,24 @@ import type { SourceId } from '@/types';
 const SOURCE_FILTERS: { id: SourceId | 'all'; label: string }[] = [
   { id: 'all',         label: 'הכל' },
   { id: 'ynet',        label: 'ynet' },
+  { id: 'walla',       label: 'וואלה' },
   { id: 'n12',         label: 'N12' },
   { id: 'israelhayom', label: 'ישראל היום' },
+  { id: 'maariv',      label: 'מעריב' },
   { id: 'c14',         label: 'ערוץ 14' },
+  { id: 'globes',      label: 'גלובס' },
+  { id: 'haaretz',     label: 'הארץ' },
 ];
 
 const SOURCE_COLORS: Record<SourceId, string> = {
   ynet:        '#e0001a',
-  n12:         '#008080',
+  walla:       '#e8003d',
+  n12:         '#007aaa',
   israelhayom: '#1a4fa0',
+  maariv:      '#0d2f6e',
   c14:         '#f97316',
+  globes:      '#0057a8',
+  haaretz:     '#006b77',
 };
 
 function hebrewDate() {

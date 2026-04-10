@@ -1,7 +1,10 @@
 import type { Handler } from '@netlify/functions';
 import { XMLParser } from 'fast-xml-parser';
 
-type SourceId = 'ynet' | 'n12' | 'israelhayom' | 'c14';
+type SourceId = 'ynet' | 'n12' | 'israelhayom' | 'c14' | 'walla' | 'maariv' | 'globes' | 'haaretz';
+
+// Google News sources — strip trailing " - Source Name" appended by Google
+const GOOGLE_NEWS_SOURCES = new Set<SourceId>(['c14', 'globes', 'haaretz']);
 
 interface Article {
   id: string;
@@ -30,10 +33,21 @@ interface FeedConfig {
   headers?: Record<string, string>;
 }
 
+const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+const BROWSER_HEADERS = {
+  'User-Agent': BROWSER_UA,
+  Accept: 'application/rss+xml, application/xml, text/xml, */*',
+  'Accept-Language': 'he-IL,he;q=0.9,en;q=0.8',
+};
+
 const FEEDS: FeedConfig[] = [
   {
     source: 'ynet',
     url: 'https://www.ynet.co.il/Integration/StoryRss2.xml',
+  },
+  {
+    source: 'walla',
+    url: 'https://rss.walla.co.il/feed/1',
   },
   {
     source: 'n12',
@@ -42,16 +56,24 @@ const FEEDS: FeedConfig[] = [
   {
     source: 'israelhayom',
     url: 'https://www.israelhayom.co.il/rss.xml',
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      Accept: 'application/rss+xml, application/xml, text/xml, */*',
-      'Accept-Language': 'he-IL,he;q=0.9,en;q=0.8',
-    },
+    headers: BROWSER_HEADERS,
+  },
+  {
+    source: 'maariv',
+    url: 'https://www.maariv.co.il/rss/rssnews.aspx',
+    headers: BROWSER_HEADERS,
   },
   {
     source: 'c14',
     url: 'https://news.google.com/rss/search?q=site:c14.co.il&hl=he&gl=IL&ceid=IL:he',
+  },
+  {
+    source: 'globes',
+    url: 'https://news.google.com/rss/search?q=site:globes.co.il&hl=he&gl=IL&ceid=IL:he',
+  },
+  {
+    source: 'haaretz',
+    url: 'https://news.google.com/rss/search?q=site:haaretz.co.il&hl=he&gl=IL&ceid=IL:he',
   },
 ];
 
@@ -81,7 +103,7 @@ function getText(val: unknown): string {
   return '';
 }
 
-function extractImage(item: RssItem): string | undefined {
+function extractImage(item: RssItem, rawDesc: string): string | undefined {
   const mc = item['media:content'];
   if (mc) {
     if (Array.isArray(mc)) {
@@ -97,6 +119,9 @@ function extractImage(item: RssItem): string | undefined {
   if (item.enclosure?.['@_url'] && item.enclosure?.['@_type']?.startsWith('image')) {
     return item.enclosure['@_url'];
   }
+  // Fallback: extract image from HTML description (e.g. Maariv)
+  const imgMatch = rawDesc.match(/src=['"]?(https?:\/\/[^'">\s]+\.(jpg|jpeg|png|webp)[^'">\s]*)['"]?/i);
+  if (imgMatch) return imgMatch[1];
   return undefined;
 }
 
@@ -109,9 +134,11 @@ function parseItems(xml: string, source: SourceId): Article[] {
   return items.slice(0, 20).map((item: RssItem): Article => {
     const rawUrl = getText(item.link) || getText(item.guid);
     const url = rawUrl.trim();
-    // Google News RSS appends " - Source Name" to titles — strip it for c14
     const rawTitle = getText(item.title).trim();
-    const title = source === 'c14' ? rawTitle.replace(/\s*[-–]\s*[^-–]+$/, '').trim() : rawTitle;
+    // Google News appends " - Source Name" — strip it
+    const title = GOOGLE_NEWS_SOURCES.has(source)
+      ? rawTitle.replace(/\s*[-–]\s*[^-–]+$/, '').trim()
+      : rawTitle;
     const rawDesc = getText(item.description);
     const description = rawDesc.replace(/<[^>]+>/g, '').trim().slice(0, 300);
     const publishedAt = item.pubDate
@@ -124,7 +151,7 @@ function parseItems(xml: string, source: SourceId): Article[] {
       description,
       url,
       source,
-      imageUrl: extractImage(item),
+      imageUrl: extractImage(item, rawDesc),
       publishedAt,
     };
   });
