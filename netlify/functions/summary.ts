@@ -60,7 +60,9 @@ ${headlines}
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '{}';
+    const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '{}';
+    // Strip markdown code fences if present
+    const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     const parsed = JSON.parse(text) as SummaryResponse;
 
     return {
