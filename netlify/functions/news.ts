@@ -106,10 +106,12 @@ function parseItems(xml: string, source: SourceId): Article[] {
   const items: RssItem[] = parsed?.rss?.channel?.item ?? [];
   if (!Array.isArray(items)) return [];
 
-  return items.slice(0, 10).map((item: RssItem): Article => {
+  return items.slice(0, 20).map((item: RssItem): Article => {
     const rawUrl = getText(item.link) || getText(item.guid);
     const url = rawUrl.trim();
-    const title = getText(item.title).trim();
+    // Google News RSS appends " - Source Name" to titles — strip it for c14
+    const rawTitle = getText(item.title).trim();
+    const title = source === 'c14' ? rawTitle.replace(/\s*[-–]\s*[^-–]+$/, '').trim() : rawTitle;
     const rawDesc = getText(item.description);
     const description = rawDesc.replace(/<[^>]+>/g, '').trim().slice(0, 300);
     const publishedAt = item.pubDate

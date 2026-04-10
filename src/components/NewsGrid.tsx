@@ -84,8 +84,8 @@ export function NewsGrid({ clusters, loading, onOpenCluster }: NewsGridProps) {
     );
   }
 
-  const multiSource = clusters.filter(c => c.articles.length > 1);
-  const singles     = clusters.filter(c => c.articles.length === 1);
+  const multiSource = clusters.filter(c => new Set(c.articles.map(a => a.source)).size > 1);
+  const singles     = clusters.filter(c => new Set(c.articles.map(a => a.source)).size === 1);
 
   return (
     <div className="flex flex-col gap-12">

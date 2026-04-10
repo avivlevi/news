@@ -83,13 +83,28 @@ export function clusterArticles(articles: Article[]): Cluster[] {
 
   const clusters: Cluster[] = [];
   for (const indices of groups.values()) {
-    const clusterArticles = indices.map(i => articles[i]);
-    const sorted = [...clusterArticles].sort(
+    const allArticles = indices.map(i => articles[i]);
+
+    // Keep only 1 article per source (most recent)
+    const bySource = new Map<string, Article>();
+    for (const a of allArticles) {
+      const existing = bySource.get(a.source);
+      if (!existing || new Date(a.publishedAt) > new Date(existing.publishedAt)) {
+        bySource.set(a.source, a);
+      }
+    }
+
+    const clusterArticles = [...bySource.values()].sort(
       (a, b) => SOURCE_PRIORITY.indexOf(a.source) - SOURCE_PRIORITY.indexOf(b.source)
     );
-    const representative = sorted[0];
+
+    // Use the longest title as representative (most informative)
+    const representative = clusterArticles.reduce((best, a) =>
+      a.title.length > best.title.length ? a : best
+    );
+
     clusters.push({
-      id: `cluster-${representative.id}`,
+      id: `cluster-${clusterArticles[0].id}`,
       articles: clusterArticles,
       representativeTitle: representative.title,
     });

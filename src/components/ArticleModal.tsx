@@ -107,7 +107,7 @@ export function ArticleModal({ cluster, onClose }: ArticleModalProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [cluster, onClose]);
 
-  const isMulti = cluster ? cluster.articles.length > 1 : false;
+  const isMulti = cluster ? new Set(cluster.articles.map(a => a.source)).size > 1 : false;
 
   return (
     <AnimatePresence>
@@ -163,10 +163,10 @@ export function ArticleModal({ cluster, onClose }: ArticleModalProps) {
 
               {/* AI comparison — only for multi-source */}
               {isMulti && (
-                <div className="px-6 py-4 border-b border-border bg-muted/50 shrink-0">
-                  <div className="flex items-center gap-2 mb-2.5">
+                <div className="px-6 py-5 border-b border-border bg-amber-500/5 shrink-0">
+                  <div className="flex items-center gap-2 mb-3">
                     <Sparkles size={15} className="text-amber-500" />
-                    <span className="text-sm font-semibold">ניתוח השוואתי</span>
+                    <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">ניתוח השוואתי</span>
                   </div>
 
                   {(comparison.status === 'idle' || comparison.status === 'loading') && (
@@ -181,7 +181,7 @@ export function ArticleModal({ cluster, onClose }: ArticleModalProps) {
                   )}
 
                   {comparison.status === 'success' && comparison.text && (
-                    <div className="text-sm leading-relaxed whitespace-pre-line text-foreground/85 max-h-48 overflow-y-auto">
+                    <div className="text-sm leading-[1.75] whitespace-pre-line text-foreground/90">
                       {comparison.text}
                     </div>
                   )}
