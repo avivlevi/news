@@ -43,27 +43,49 @@ export const handler: Handler = async event => {
 
 ${headlines}
 
-כתוב תמצית חדשותית מעמיקה בפורמט JSON בדיוק:
-{
-  "summary": "שני פסקאות נפרדות, מופרדות בשני רווחי שורה (\\n\\n). הפסקה הראשונה: סקירה של הסיפור או הסיפורים הדומיננטיים ביותר — היה ספציפי, ציין שמות, מספרים, מדינות או פרטים בולטים שעולים מהכותרות. הפסקה השנייה: הקשר רחב יותר — תאר את האווירה הכללית של היום, נושאים משניים חשובים, ומה התמונה הכוללת שמצטיירת. כתוב בגוף שלישי, ברמה של עיתונאי בכיר.",
-  "topics": ["נושא1", "נושא2", "נושא3", "נושא4", "נושא5", "נושא6"]
-}
-
-הנושאים הם מילים או ביטויים קצרים (2-3 מילים לכל היותר) המייצגים את הנושאים המרכזיים ביום זה.
-החזר JSON בלבד, ללא טקסט נוסף.`;
+כתוב תמצית חדשותית מעמיקה:
+- פסקה ראשונה: סקירת הסיפורים הדומיננטיים — היה ספציפי, ציין שמות, מדינות, פרטים בולטים.
+- פסקה שנייה: הקשר רחב יותר — אווירה כללית, נושאים משניים, התמונה הכוללת.
+- נושאים: 6 ביטויים קצרים (2-3 מילים) המייצגים את הנושאים המרכזיים.
+כתוב בגוף שלישי, ברמה של עיתונאי בכיר.`;
 
   try {
     const client = new Anthropic({ apiKey });
+
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 900,
+      tools: [
+        {
+          name: 'news_summary',
+          description: 'Output a structured daily news summary in Hebrew',
+          input_schema: {
+            type: 'object' as const,
+            properties: {
+              summary: {
+                type: 'string',
+                description: 'Two Hebrew paragraphs separated by \\n\\n — first covers dominant stories with specifics, second gives broader context and mood',
+              },
+              topics: {
+                type: 'array',
+                items: { type: 'string' },
+                description: '6 short Hebrew topic phrases (2-3 words each)',
+              },
+            },
+            required: ['summary', 'topics'],
+          },
+        },
+      ],
+      tool_choice: { type: 'tool', name: 'news_summary' },
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '{}';
-    // Strip markdown code fences if present
-    const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    const parsed = JSON.parse(text) as SummaryResponse;
+    const toolBlock = response.content.find(b => b.type === 'tool_use');
+    if (!toolBlock || toolBlock.type !== 'tool_use') {
+      return { statusCode: 500, body: JSON.stringify({ error: 'No tool response from Claude' }) };
+    }
+
+    const parsed = toolBlock.input as SummaryResponse;
 
     return {
       statusCode: 200,
