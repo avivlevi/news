@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { NewsHeader } from '@/components/NewsHeader';
 import { NewsGrid } from '@/components/NewsGrid';
 import { ArticleModal } from '@/components/ArticleModal';
+import { NewsSummary } from '@/components/NewsSummary';
 import { clusterArticles } from '@/lib/clustering';
-import type { Cluster, SourceId, NewsApiResponse } from '@/types';
+import type { Cluster, SourceId, NewsApiResponse, SummaryState } from '@/types';
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => {
@@ -35,6 +36,7 @@ export function App() {
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [activeSource, setActiveSource] = useState<SourceId | 'all'>('all');
   const [openCluster, setOpenCluster] = useState<Cluster | null>(null);
+  const [summary, setSummary] = useState<SummaryState>({ status: 'idle' });
 
   useEffect(() => {
     async function fetchNews() {
@@ -46,6 +48,29 @@ export function App() {
         const data = (await res.json()) as NewsApiResponse;
         setFetchedAt(data.fetchedAt);
         setClusters(clusterArticles(data.articles));
+
+        // Fire summary in parallel — don't await
+        setSummary({ status: 'loading' });
+        fetch('/api/summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            articles: data.articles.map(a => ({
+              title: a.title,
+              description: a.description,
+              source: a.source,
+            })),
+          }),
+        })
+          .then(r => r.json() as Promise<{ summary?: string; topics?: string[]; error?: string }>)
+          .then(d =>
+            setSummary(
+              d.summary
+                ? { status: 'success', summary: d.summary, topics: d.topics ?? [] }
+                : { status: 'error' }
+            )
+          )
+          .catch(() => setSummary({ status: 'error' }));
       } catch (e) {
         setError(e instanceof Error ? e.message : 'שגיאה בטעינת החדשות');
       } finally {
@@ -75,6 +100,7 @@ export function App() {
         onToggleDark={() => setDark(d => !d)}
       />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {!loading && !error && <NewsSummary state={summary} />}
         {error ? (
           <div className="text-center text-destructive py-16 text-lg">{error}</div>
         ) : (

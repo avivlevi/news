@@ -33,3 +33,9 @@ export interface ComparisonState {
   status: 'idle' | 'loading' | 'success' | 'error';
   text?: string;
 }
+
+export interface SummaryState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  summary?: string;
+  topics?: string[];
+}
