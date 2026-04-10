@@ -6,9 +6,10 @@ import type { Cluster } from '@/types';
 interface NewsGridProps {
   clusters: Cluster[];
   loading: boolean;
+  onOpenCluster: (cluster: Cluster) => void;
 }
 
-export function NewsGrid({ clusters, loading }: NewsGridProps) {
+export function NewsGrid({ clusters, loading, onOpenCluster }: NewsGridProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -39,7 +40,11 @@ export function NewsGrid({ clusters, loading }: NewsGridProps) {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {multiSource.map(cluster => (
-              <ClusterCard key={cluster.id} cluster={cluster} />
+              <ClusterCard
+                key={cluster.id}
+                cluster={cluster}
+                onOpen={() => onOpenCluster(cluster)}
+              />
             ))}
           </div>
         </section>
@@ -52,7 +57,11 @@ export function NewsGrid({ clusters, loading }: NewsGridProps) {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {singles.map(cluster => (
-              <ArticleCard key={cluster.id} article={cluster.articles[0]} />
+              <ArticleCard
+                key={cluster.id}
+                article={cluster.articles[0]}
+                onOpen={() => onOpenCluster(cluster)}
+              />
             ))}
           </div>
         </section>

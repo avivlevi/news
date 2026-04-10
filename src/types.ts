@@ -20,3 +20,16 @@ export interface NewsApiResponse {
   articles: Article[];
   fetchedAt: string;
 }
+
+export interface ArticleContent {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  paragraphs: string[];
+  title?: string;
+  author?: string;
+  error?: string;
+}
+
+export interface ComparisonState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  text?: string;
+}

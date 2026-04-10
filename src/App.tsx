@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NewsHeader } from '@/components/NewsHeader';
 import { NewsGrid } from '@/components/NewsGrid';
+import { ArticleModal } from '@/components/ArticleModal';
 import { clusterArticles } from '@/lib/clustering';
 import type { Cluster, SourceId, NewsApiResponse } from '@/types';
 
@@ -10,6 +11,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [activeSource, setActiveSource] = useState<SourceId | 'all'>('all');
+  const [openCluster, setOpenCluster] = useState<Cluster | null>(null);
 
   useEffect(() => {
     async function fetchNews() {
@@ -51,9 +53,18 @@ export function App() {
         {error ? (
           <div className="text-center text-destructive py-12 text-lg">{error}</div>
         ) : (
-          <NewsGrid clusters={filteredClusters} loading={loading} />
+          <NewsGrid
+            clusters={filteredClusters}
+            loading={loading}
+            onOpenCluster={setOpenCluster}
+          />
         )}
       </main>
+
+      <ArticleModal
+        cluster={openCluster}
+        onClose={() => setOpenCluster(null)}
+      />
     </div>
   );
 }

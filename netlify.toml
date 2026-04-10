@@ -14,6 +14,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/article"
+  to = "/.netlify/functions/article"
+  status = 200
+
+[[redirects]]
+  from = "/api/compare"
+  to = "/.netlify/functions/compare"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
