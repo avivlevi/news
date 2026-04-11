@@ -5,9 +5,10 @@ import type { Article } from '@/types';
 interface ArticleCardProps {
   article: Article;
   onOpen: () => void;
+  score?: number;
 }
 
-export function ArticleCard({ article, onOpen }: ArticleCardProps) {
+export function ArticleCard({ article, onOpen, score }: ArticleCardProps) {
   const color = SOURCE_CONFIG[article.source].bg;
   const timeLabel = new Date(article.publishedAt).toLocaleTimeString('he-IL', {
     hour: '2-digit', minute: '2-digit',
@@ -58,7 +59,7 @@ export function ArticleCard({ article, onOpen }: ArticleCardProps) {
 
         {/* Bias footer */}
         <div className="mt-auto pt-3 border-t border-border/60">
-          <BiasBar source={article.source} />
+          <BiasBar source={article.source} score={score} />
         </div>
       </div>
     </motion.article>

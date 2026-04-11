@@ -7,10 +7,19 @@ interface ClusterCardProps {
   cluster: Cluster;
   onOpen: () => void;
   featured?: boolean;
+  articleScores?: Record<string, number>;
 }
 
-export function ClusterCard({ cluster, onOpen, featured = false }: ClusterCardProps) {
+export function ClusterCard({ cluster, onOpen, featured = false, articleScores = {} }: ClusterCardProps) {
   const { articles, representativeTitle } = cluster;
+
+  // Map source → dynamic score (use most recently scored article per source)
+  const sourceScores: Partial<Record<string, number>> = {};
+  for (const a of articles) {
+    if (articleScores[a.id] !== undefined) {
+      sourceScores[a.source] = articleScores[a.id];
+    }
+  }
   const primary = [...articles].sort(
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   )[0];
@@ -75,7 +84,7 @@ export function ClusterCard({ cluster, onOpen, featured = false }: ClusterCardPr
             </span>
           </div>
           <div className="bg-black/30 backdrop-blur-sm rounded-xl px-3 pt-2.5 pb-2">
-            <ClusterBiasBar sources={articles.map(a => a.source)} />
+            <ClusterBiasBar sources={articles.map(a => a.source)} sourceScores={sourceScores} />
           </div>
         </div>
       </motion.article>
@@ -132,7 +141,7 @@ export function ClusterCard({ cluster, onOpen, featured = false }: ClusterCardPr
 
         {/* Bias footer */}
         <div className="mt-auto pt-3 border-t border-border/60">
-          <ClusterBiasBar sources={articles.map(a => a.source)} />
+          <ClusterBiasBar sources={articles.map(a => a.source)} sourceScores={sourceScores} />
         </div>
       </div>
     </motion.article>

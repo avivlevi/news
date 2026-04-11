@@ -24,8 +24,8 @@ export function biasBarColor(score: number): string {
 }
 
 /** Horizontal bar showing political bias for one source. */
-export function BiasBar({ source }: { source: SourceId }) {
-  const score = SOURCE_BIAS[source];
+export function BiasBar({ source, score: scoreProp }: { source: SourceId; score?: number }) {
+  const score = scoreProp ?? SOURCE_BIAS[source];
   const pct = ((score - 1) / 9) * 100;
   const color = biasBarColor(score);
 
@@ -47,11 +47,11 @@ export function BiasBar({ source }: { source: SourceId }) {
 }
 
 /** Stacked bias bars for multiple sources in a cluster. */
-export function ClusterBiasBar({ sources }: { sources: SourceId[] }) {
+export function ClusterBiasBar({ sources, sourceScores = {} }: { sources: SourceId[]; sourceScores?: Partial<Record<SourceId, number>> }) {
   return (
     <div className="w-full space-y-1.5" dir="ltr">
       {sources.map(source => {
-        const score = SOURCE_BIAS[source];
+        const score = sourceScores[source] ?? SOURCE_BIAS[source];
         const pct = ((score - 1) / 9) * 100;
         const color = biasBarColor(score);
         const cfg = SOURCE_CONFIG[source];

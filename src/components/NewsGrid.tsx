@@ -49,9 +49,10 @@ interface NewsGridProps {
   clusters: Cluster[];
   loading: boolean;
   onOpenCluster: (cluster: Cluster) => void;
+  articleScores: Record<string, number>;
 }
 
-export function NewsGrid({ clusters, loading, onOpenCluster }: NewsGridProps) {
+export function NewsGrid({ clusters, loading, onOpenCluster, articleScores }: NewsGridProps) {
   /* ── Loading ── */
   if (loading) {
     return (
@@ -103,16 +104,13 @@ export function NewsGrid({ clusters, loading, onOpenCluster }: NewsGridProps) {
               <motion.div
                 key={cluster.id}
                 variants={item}
-                className={
-                  idx === 0
-                    ? 'sm:col-span-2 lg:col-span-2'
-                    : ''
-                }
+                className={idx === 0 ? 'sm:col-span-2 lg:col-span-2' : ''}
               >
                 <ClusterCard
                   cluster={cluster}
                   onOpen={() => onOpenCluster(cluster)}
                   featured={idx === 0}
+                  articleScores={articleScores}
                 />
               </motion.div>
             ))}
@@ -135,6 +133,7 @@ export function NewsGrid({ clusters, loading, onOpenCluster }: NewsGridProps) {
                 <ArticleCard
                   article={cluster.articles[0]}
                   onOpen={() => onOpenCluster(cluster)}
+                  score={articleScores[cluster.articles[0].id]}
                 />
               </motion.div>
             ))}

@@ -4,7 +4,7 @@ import { NewsGrid } from '@/components/NewsGrid';
 import { ArticleModal } from '@/components/ArticleModal';
 import { NewsSummary } from '@/components/NewsSummary';
 import { clusterArticles } from '@/lib/clustering';
-import type { Cluster, SourceId, NewsApiResponse, SummaryState } from '@/types';
+import type { Cluster, SourceId, NewsApiResponse, SummaryState, Article } from '@/types';
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => {
@@ -37,6 +37,7 @@ export function App() {
   const [activeSource, setActiveSource] = useState<SourceId | 'all'>('all');
   const [openCluster, setOpenCluster] = useState<Cluster | null>(null);
   const [summary, setSummary] = useState<SummaryState>({ status: 'idle' });
+  const [articleScores, setArticleScores] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -51,6 +52,21 @@ export function App() {
         const data = (await res.json()) as NewsApiResponse;
         setFetchedAt(data.fetchedAt);
         setClusters(clusterArticles(data.articles));
+
+        // Fetch per-article bias scores in parallel
+        fetch('/api/scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            articles: data.articles.map((a: Article) => ({
+              id: a.id, title: a.title, description: a.description, source: a.source,
+            })),
+          }),
+          signal,
+        })
+          .then(r => r.json() as Promise<{ scores?: Record<string, number> }>)
+          .then(d => { if (!signal.aborted && d.scores) setArticleScores(d.scores); })
+          .catch(() => {});
 
         setSummary({ status: 'loading' });
         fetch('/api/summary', {
@@ -115,6 +131,7 @@ export function App() {
             clusters={filteredClusters}
             loading={loading}
             onOpenCluster={setOpenCluster}
+            articleScores={articleScores}
           />
         )}
       </main>
