@@ -131,7 +131,7 @@ function parseItems(xml: string, source: SourceId): Article[] {
   const items: RssItem[] = parsed?.rss?.channel?.item ?? [];
   if (!Array.isArray(items)) return [];
 
-  return items.slice(0, 20).map((item: RssItem): Article => {
+  return items.slice(0, 5).map((item: RssItem): Article => {
     const rawUrl = getText(item.link) || getText(item.guid);
     const url = rawUrl.trim();
     const rawTitle = getText(item.title).trim();

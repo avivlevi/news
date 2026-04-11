@@ -58,7 +58,7 @@ export function App() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            articles: data.articles.slice(0, 40).map((a: Article) => ({
+            articles: data.articles.map((a: Article) => ({
               id: a.id, title: a.title, description: a.description, source: a.source,
             })),
           }),
