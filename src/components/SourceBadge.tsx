@@ -1,5 +1,88 @@
 import type { SourceId } from '@/types';
 
+/**
+ * Static political bias score per source: 1 = strongly anti-government, 10 = strongly pro-government.
+ * Based on well-established Israeli media editorial positions.
+ */
+export const SOURCE_BIAS: Record<SourceId, number> = {
+  haaretz:     2,  // strongly left / anti-government
+  ynet:        4,  // center-left, often critical
+  walla:       4,  // center, somewhat critical
+  n12:         5,  // center / balanced
+  globes:      5,  // business-focused / neutral
+  maariv:      6,  // center-right
+  israelhayom: 9,  // strongly pro-Netanyahu (Adelson-founded)
+  c14:         9,  // right-wing / strongly pro-government
+};
+
+export function biasBarColor(score: number): string {
+  if (score <= 2) return '#ef4444';
+  if (score <= 4) return '#f97316';
+  if (score <= 6) return '#eab308';
+  if (score <= 8) return '#84cc16';
+  return '#22c55e';
+}
+
+/** Horizontal bar showing political bias for one source. */
+export function BiasBar({ source }: { source: SourceId }) {
+  const score = SOURCE_BIAS[source];
+  const pct = ((score - 1) / 9) * 100;
+  const color = biasBarColor(score);
+
+  return (
+    <div className="w-full" dir="ltr">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-[10px] text-muted-foreground">נגד</span>
+        <span className="text-[10px] font-bold tabular-nums" style={{ color }}>{score}/10</span>
+        <span className="text-[10px] text-muted-foreground">בעד</span>
+      </div>
+      <div className="relative h-1.5 rounded-full overflow-hidden bg-muted">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Stacked bias bars for multiple sources in a cluster. */
+export function ClusterBiasBar({ sources }: { sources: SourceId[] }) {
+  return (
+    <div className="w-full space-y-1.5" dir="ltr">
+      {sources.map(source => {
+        const score = SOURCE_BIAS[source];
+        const pct = ((score - 1) / 9) * 100;
+        const color = biasBarColor(score);
+        const cfg = SOURCE_CONFIG[source];
+        return (
+          <div key={source} className="flex items-center gap-2">
+            <span
+              className="text-[10px] font-semibold shrink-0 w-14 text-right truncate"
+              style={{ color: cfg.bg }}
+            >
+              {cfg.label}
+            </span>
+            <div className="relative flex-1 h-1.5 rounded-full overflow-hidden bg-muted">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${pct}%`, backgroundColor: color }}
+              />
+            </div>
+            <span className="text-[10px] font-bold tabular-nums shrink-0 w-6" style={{ color }}>
+              {score}
+            </span>
+          </div>
+        );
+      })}
+      <div className="flex justify-between pt-0.5">
+        <span className="text-[9px] text-muted-foreground/60">נגד הממשלה</span>
+        <span className="text-[9px] text-muted-foreground/60">בעד הממשלה</span>
+      </div>
+    </div>
+  );
+}
+
 export const SOURCE_CONFIG: Record<SourceId, { label: string; color: string; bg: string; domain: string }> = {
   ynet:        { label: 'ynet',        color: '#ffffff', bg: '#e0001a', domain: 'ynet.co.il' },
   walla:       { label: 'וואלה',       color: '#ffffff', bg: '#e8003d', domain: 'walla.co.il' },

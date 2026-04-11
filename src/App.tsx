@@ -39,45 +39,52 @@ export function App() {
   const [summary, setSummary] = useState<SummaryState>({ status: 'idle' });
 
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
     async function fetchNews() {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch('/api/news');
+        const res = await fetch('/api/news', { signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as NewsApiResponse;
         setFetchedAt(data.fetchedAt);
         setClusters(clusterArticles(data.articles));
 
-        // Fire summary in parallel — don't await
         setSummary({ status: 'loading' });
         fetch('/api/summary', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            articles: data.articles.map(a => ({
+            articles: data.articles.slice(0, 30).map(a => ({
               title: a.title,
               description: a.description,
               source: a.source,
             })),
           }),
+          signal,
         })
-          .then(r => r.json() as Promise<{ summary?: string; topics?: string[]; error?: string }>)
-          .then(d =>
+          .then(r => r.json() as Promise<{ points?: string[]; topics?: string[]; error?: string }>)
+          .then(d => {
+            if (signal.aborted) return;
             setSummary(
-              d.summary
-                ? { status: 'success', summary: d.summary, topics: d.topics ?? [] }
+              Array.isArray(d.points) && d.points.length > 0
+                ? { status: 'success', points: d.points, topics: Array.isArray(d.topics) ? d.topics : [] }
                 : { status: 'error' }
-            )
-          )
-          .catch(() => setSummary({ status: 'error' }));
+            );
+          })
+          .catch(e => { if (!signal.aborted) setSummary({ status: 'error' }); void e; });
       } catch (e) {
+        if (signal.aborted) return;
         setError(e instanceof Error ? e.message : 'שגיאה בטעינת החדשות');
       } finally {
-        setLoading(false);
+        if (!signal.aborted) setLoading(false);
       }
     }
+
     void fetchNews();
+    return () => controller.abort();
   }, []);
 
   const filteredClusters =

@@ -13,4 +13,16 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    port: 5190,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:9001/.netlify/functions',
+        rewrite: path => path.replace(/^\/api/, ''),
+        changeOrigin: true,
+        timeout: 35000,
+        proxyTimeout: 35000,
+      },
+    },
+  },
 })

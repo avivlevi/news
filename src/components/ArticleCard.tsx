@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { SourceBadge, SOURCE_CONFIG } from './SourceBadge';
+import { SourceBadge, BiasBar, SOURCE_CONFIG } from './SourceBadge';
 import type { Article } from '@/types';
 
 interface ArticleCardProps {
@@ -40,10 +40,10 @@ export function ArticleCard({ article, onOpen }: ArticleCardProps) {
       )}
 
       {/* Body */}
-      <div className="p-5 flex flex-col gap-3 flex-1">
+      <div className="p-4 flex flex-col gap-2.5 flex-1">
         <div className="flex items-center justify-between gap-2">
           <SourceBadge source={article.source} />
-          <time className="text-xs text-muted-foreground tabular-nums">{timeLabel}</time>
+          <time className="text-xs text-muted-foreground tabular-nums shrink-0">{timeLabel}</time>
         </div>
 
         <h3 className="font-semibold text-sm leading-snug line-clamp-3 flex-1">
@@ -56,10 +56,9 @@ export function ArticleCard({ article, onOpen }: ArticleCardProps) {
           </p>
         )}
 
-        <div className="mt-auto pt-1 border-t border-border/60">
-          <span className="text-xs font-medium" style={{ color }}>
-            קרא כתבה ←
-          </span>
+        {/* Bias footer */}
+        <div className="mt-auto pt-3 border-t border-border/60">
+          <BiasBar source={article.source} />
         </div>
       </div>
     </motion.article>

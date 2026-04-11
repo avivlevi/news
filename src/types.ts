@@ -29,13 +29,20 @@ export interface ArticleContent {
   error?: string;
 }
 
+export interface BiasScore {
+  source: string;
+  score: number;
+  brief: string;
+}
+
 export interface ComparisonState {
   status: 'idle' | 'loading' | 'success' | 'error';
   text?: string;
+  biasScores?: BiasScore[];
 }
 
 export interface SummaryState {
   status: 'idle' | 'loading' | 'success' | 'error';
-  summary?: string;
+  points?: string[];
   topics?: string[];
 }

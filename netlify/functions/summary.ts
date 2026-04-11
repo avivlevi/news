@@ -8,7 +8,7 @@ interface ArticleInput {
 }
 
 interface SummaryResponse {
-  summary: string;
+  points: string[];
   topics: string[];
 }
 
@@ -43,9 +43,10 @@ export const handler: Handler = async event => {
 
 ${headlines}
 
-כתוב תמצית חדשותית מעמיקה:
-- פסקה ראשונה: סקירת הסיפורים הדומיננטיים — היה ספציפי, ציין שמות, מדינות, פרטים בולטים.
-- פסקה שנייה: הקשר רחב יותר — אווירה כללית, נושאים משניים, התמונה הכוללת.
+כתוב תמצית חדשותית מעמיקה בנקודות:
+- 5 עד 7 נקודות, כל אחת משפט עד שניים.
+- הנקודות הראשונות על הסיפורים הדומיננטיים — היה ספציפי, ציין שמות, מדינות, פרטים בולטים.
+- הנקודות האחרונות על הקשר רחב יותר — אווירה כללית, נושאים משניים, התמונה הכוללת.
 - נושאים: 6 ביטויים קצרים (2-3 מילים) המייצגים את הנושאים המרכזיים.
 כתוב בגוף שלישי, ברמה של עיתונאי בכיר.`;
 
@@ -62,9 +63,10 @@ ${headlines}
           input_schema: {
             type: 'object' as const,
             properties: {
-              summary: {
-                type: 'string',
-                description: 'Two Hebrew paragraphs separated by \\n\\n — first covers dominant stories with specifics, second gives broader context and mood',
+              points: {
+                type: 'array',
+                items: { type: 'string' },
+                description: '5–7 Hebrew bullet points covering today\'s news. Each point is 1–2 sentences. Start with dominant stories (specific names/details), end with broader context.',
               },
               topics: {
                 type: 'array',
@@ -72,7 +74,7 @@ ${headlines}
                 description: '6 short Hebrew topic phrases (2-3 words each)',
               },
             },
-            required: ['summary', 'topics'],
+            required: ['points', 'topics'],
           },
         },
       ],

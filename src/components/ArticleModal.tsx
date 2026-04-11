@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, AlertCircle, Sparkles, ExternalLink } from 'lucide-react';
 import { SourceBadge, SourceStrip, SOURCE_CONFIG } from './SourceBadge';
-import type { Cluster, ArticleContent, ComparisonState } from '@/types';
+import type { Cluster, ArticleContent, ComparisonState, BiasScore } from '@/types';
 
 interface ArticleResponse {
   paragraphs?: string[];
@@ -14,6 +14,7 @@ interface ArticleResponse {
 
 interface CompareResponse {
   comparison?: string;
+  biasScores?: BiasScore[];
   error?: string;
 }
 
@@ -91,7 +92,11 @@ export function ArticleModal({ cluster, onClose }: ArticleModalProps) {
       })
         .then(r => r.json() as Promise<CompareResponse>)
         .then(data =>
-          setComparison({ status: data.comparison ? 'success' : 'error', text: data.comparison })
+          setComparison({
+            status: data.comparison ? 'success' : 'error',
+            text: data.comparison,
+            biasScores: data.biasScores,
+          })
         )
         .catch(() => setComparison({ status: 'error' }));
     },
@@ -99,6 +104,16 @@ export function ArticleModal({ cluster, onClose }: ArticleModalProps) {
   );
 
   useEffect(() => { runComparison(contents); }, [contents, runComparison]);
+
+  /* lock body scroll when open */
+  useEffect(() => {
+    if (cluster) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [cluster]);
 
   /* close on Escape */
   useEffect(() => {
@@ -138,123 +153,210 @@ export function ArticleModal({ cluster, onClose }: ArticleModalProps) {
               dir="rtl"
               onClick={e => e.stopPropagation()}
             >
-              {/* Source spectrum bar */}
-              <div className="spectrum-bar h-[5px] rounded-t-2xl flex shrink-0">
-                {cluster.articles.map(a => <SourceStrip key={a.id} source={a.source} />)}
+              {/* Spectrum bar + Header — sticky */}
+              <div className="shrink-0">
+                <div className="spectrum-bar h-[5px] rounded-t-2xl flex">
+                  {cluster.articles.map(a => <SourceStrip key={a.id} source={a.source} />)}
+                </div>
+                <div className="flex items-start gap-3 px-6 pt-5 pb-4 border-b border-border">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap gap-1.5 mb-2.5">
+                      {cluster.articles.map(a => <SourceBadge key={a.id} source={a.source} />)}
+                    </div>
+                    <h2 className="text-lg font-bold leading-snug">
+                      {cluster.representativeTitle}
+                    </h2>
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors mt-1"
+                  >
+                    <X size={17} />
+                  </button>
+                </div>
               </div>
 
-              {/* Header */}
-              <div className="flex items-start gap-3 px-6 pt-5 pb-4 border-b border-border shrink-0">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap gap-1.5 mb-2.5">
-                    {cluster.articles.map(a => <SourceBadge key={a.id} source={a.source} />)}
+              {/* Scrollable body */}
+              <div className="flex-1 overflow-y-auto">
+
+                {/* AI comparison — only for multi-source */}
+                {isMulti && (
+                  <div className="px-6 py-5 border-b border-border bg-amber-500/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles size={15} className="text-amber-500" />
+                      <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">ניתוח השוואתי</span>
+                    </div>
+
+                    {(comparison.status === 'idle' || comparison.status === 'loading') && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 size={14} className="animate-spin shrink-0" />
+                        <span>
+                          {comparison.status === 'idle'
+                            ? 'טוען כתבות לניתוח...'
+                            : 'מנתח את ההבדלים בין המקורות...'}
+                        </span>
+                      </div>
+                    )}
+
+                    {comparison.status === 'success' && comparison.text && (
+                      <>
+                        <div className="text-sm leading-[1.75] whitespace-pre-line text-foreground/90">
+                          {comparison.text}
+                        </div>
+                        {comparison.biasScores && comparison.biasScores.length > 0 && (
+                          <BiasScorePanel scores={comparison.biasScores} />
+                        )}
+                      </>
+                    )}
+
+                    {comparison.status === 'error' && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <AlertCircle size={14} />
+                        <span>לא הצלחנו לנתח את ההבדלים</span>
+                      </div>
+                    )}
                   </div>
-                  <h2 className="text-lg font-bold leading-snug">
-                    {cluster.representativeTitle}
-                  </h2>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors mt-1"
-                >
-                  <X size={17} />
-                </button>
-              </div>
+                )}
 
-              {/* AI comparison — only for multi-source */}
-              {isMulti && (
-                <div className="px-6 py-5 border-b border-border bg-amber-500/5 shrink-0">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles size={15} className="text-amber-500" />
-                    <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">ניתוח השוואתי</span>
-                  </div>
-
-                  {(comparison.status === 'idle' || comparison.status === 'loading') && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 size={14} className="animate-spin shrink-0" />
-                      <span>
-                        {comparison.status === 'idle'
-                          ? 'טוען כתבות לניתוח...'
-                          : 'מנתח את ההבדלים בין המקורות...'}
-                      </span>
+                {/* Source tabs (multi) or single article */}
+                {isMulti ? (
+                  <>
+                    {/* Tab strip — sticky within scroll */}
+                    <div className="sticky top-0 z-10 bg-card flex gap-1 px-6 pt-3 pb-0 border-b border-border overflow-x-auto">
+                      {cluster.articles.map(a => {
+                        const active = activeTab === a.id;
+                        const color = SOURCE_CONFIG[a.source].bg;
+                        return (
+                          <button
+                            key={a.id}
+                            onClick={() => setActiveTab(a.id)}
+                            className="relative shrink-0 px-4 py-2 text-sm font-medium rounded-t-lg transition-colors"
+                            style={active ? { color } : { color: 'var(--muted-foreground)' }}
+                          >
+                            {SOURCE_CONFIG[a.source].label}
+                            {active && (
+                              <motion.div
+                                layoutId="tab-underline"
+                                className="absolute bottom-0 inset-x-0 h-[2.5px] rounded-full"
+                                style={{ background: color }}
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
 
-                  {comparison.status === 'success' && comparison.text && (
-                    <div className="text-sm leading-[1.75] whitespace-pre-line text-foreground/90">
-                      {comparison.text}
-                    </div>
-                  )}
-
-                  {comparison.status === 'error' && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <AlertCircle size={14} />
-                      <span>לא הצלחנו לנתח את ההבדלים</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Source tabs (multi) or single article */}
-              {isMulti ? (
-                <div className="flex flex-col flex-1 min-h-0">
-                  {/* Tab strip */}
-                  <div className="flex gap-1 px-6 pt-3 pb-0 shrink-0 border-b border-border overflow-x-auto">
-                    {cluster.articles.map(a => {
-                      const active = activeTab === a.id;
-                      const color = SOURCE_CONFIG[a.source].bg;
-                      return (
-                        <button
-                          key={a.id}
-                          onClick={() => setActiveTab(a.id)}
-                          className="relative shrink-0 px-4 py-2 text-sm font-medium rounded-t-lg transition-colors"
-                          style={
-                            active
-                              ? { color }
-                              : { color: 'var(--muted-foreground)' }
-                          }
-                        >
-                          {SOURCE_CONFIG[a.source].label}
-                          {active && (
-                            <motion.div
-                              layoutId="tab-underline"
-                              className="absolute bottom-0 inset-x-0 h-[2.5px] rounded-full"
-                              style={{ background: color }}
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Article content */}
-                  {cluster.articles.map(a => (
-                    <div
-                      key={a.id}
-                      className={`flex-1 min-h-0 overflow-y-auto ${activeTab === a.id ? 'block' : 'hidden'}`}
-                    >
-                      <ArticleBody
-                        content={contents[a.id]}
-                        fallback={a.description}
-                        url={a.url}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex-1 min-h-0 overflow-y-auto">
+                    {cluster.articles.map(a => (
+                      <div key={a.id} className={activeTab === a.id ? 'block' : 'hidden'}>
+                        <ArticleBody
+                          content={contents[a.id]}
+                          fallback={a.description}
+                          url={a.url}
+                        />
+                      </div>
+                    ))}
+                  </>
+                ) : (
                   <ArticleBody
                     content={contents[cluster.articles[0]?.id]}
                     fallback={cluster.articles[0]?.description}
                     url={cluster.articles[0]?.url}
                   />
-                </div>
-              )}
+                )}
+
+              </div>{/* end scrollable body */}
             </div>
           </motion.div>
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+/* ── Bias score panel ────────────────────────────────────────────── */
+function biasColor(score: number): string {
+  if (score <= 2) return '#ef4444';
+  if (score <= 4) return '#f97316';
+  if (score <= 6) return '#eab308';
+  if (score <= 8) return '#84cc16';
+  return '#22c55e';
+}
+
+function biasLabel(score: number): string {
+  if (score <= 2) return 'נגד חזק';
+  if (score <= 4) return 'נגד';
+  if (score <= 6) return 'ניטרלי';
+  if (score <= 8) return 'בעד';
+  return 'בעד חזק';
+}
+
+function BiasScorePanel({ scores }: { scores: BiasScore[] }) {
+  return (
+    <div className="mt-5 pt-4 border-t border-border/60">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">עמדה לגבי הממשלה</span>
+      </div>
+
+      <div className="space-y-4">
+        {scores.map(item => {
+          const color = biasColor(item.score);
+          const pct = ((item.score - 1) / 9) * 100;
+          const cfg = SOURCE_CONFIG[item.source as keyof typeof SOURCE_CONFIG];
+          const label = cfg?.label ?? item.source;
+          const sourceBg = cfg?.bg ?? '#888';
+
+          return (
+            <div key={item.source}>
+              {/* Source name + score badge */}
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold text-white shrink-0"
+                    style={{ backgroundColor: sourceBg }}
+                  >
+                    {cfg && (
+                      <img
+                        src={`https://www.google.com/s2/favicons?domain=${cfg.domain}&sz=32`}
+                        alt=""
+                        width={11}
+                        height={11}
+                        className="rounded-sm"
+                        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    )}
+                    {label}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{item.brief}</span>
+                </div>
+                <span
+                  className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: color + '22', color }}
+                >
+                  {item.score}/10 · {biasLabel(item.score)}
+                </span>
+              </div>
+
+              {/* Bar track */}
+              <div className="relative h-2 rounded-full bg-muted overflow-hidden" dir="ltr">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: color }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Scale labels */}
+      <div className="flex justify-between mt-2" dir="ltr">
+        <span className="text-[10px] text-muted-foreground">① נגד הממשלה</span>
+        <span className="text-[10px] text-muted-foreground">בעד הממשלה ⑩</span>
+      </div>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Layers } from 'lucide-react';
-import { SourceBadge, SourceStrip } from './SourceBadge';
+import { SourceBadge, ClusterBiasBar, SourceStrip } from './SourceBadge';
 import type { Cluster } from '@/types';
 
 interface ClusterCardProps {
@@ -63,7 +63,7 @@ export function ClusterCard({ cluster, onOpen, featured = false }: ClusterCardPr
               {primary.description}
             </p>
           )}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5 text-white/60 text-xs">
               <Layers size={13} />
               <span>{articles.length} מקורות</span>
@@ -73,6 +73,9 @@ export function ClusterCard({ cluster, onOpen, featured = false }: ClusterCardPr
             <span className="text-white/80 text-xs font-medium bg-white/15 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20">
               קרא ביקורת השוואתית ←
             </span>
+          </div>
+          <div className="bg-black/30 backdrop-blur-sm rounded-xl px-3 pt-2.5 pb-2">
+            <ClusterBiasBar sources={articles.map(a => a.source)} />
           </div>
         </div>
       </motion.article>
@@ -109,9 +112,12 @@ export function ClusterCard({ cluster, onOpen, featured = false }: ClusterCardPr
       )}
 
       {/* Body */}
-      <div className="p-5 flex flex-col gap-3 flex-1">
-        <div className="flex flex-wrap gap-1.5">
-          {articles.map(a => <SourceBadge key={a.id} source={a.source} />)}
+      <div className="p-4 flex flex-col gap-2.5 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-1.5">
+            {articles.map(a => <SourceBadge key={a.id} source={a.source} />)}
+          </div>
+          <time className="text-xs text-muted-foreground tabular-nums shrink-0">{timeLabel}</time>
         </div>
 
         <h2 className="font-bold text-base leading-snug line-clamp-3">
@@ -124,12 +130,9 @@ export function ClusterCard({ cluster, onOpen, featured = false }: ClusterCardPr
           </p>
         )}
 
-        <div className="flex items-center justify-between pt-1 mt-auto border-t border-border/60">
-          <div className="flex items-center gap-1 text-muted-foreground text-xs">
-            <Layers size={12} />
-            <span>{articles.length} מקורות</span>
-          </div>
-          <span className="text-xs text-primary font-medium">{timeLabel}</span>
+        {/* Bias footer */}
+        <div className="mt-auto pt-3 border-t border-border/60">
+          <ClusterBiasBar sources={articles.map(a => a.source)} />
         </div>
       </div>
     </motion.article>
