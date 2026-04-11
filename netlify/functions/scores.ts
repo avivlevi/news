@@ -30,21 +30,25 @@ export const handler: Handler = async event => {
     return { statusCode: 400, body: JSON.stringify({ error: 'No articles provided' }) };
   }
 
+  // Do NOT include source name — we want content-based scoring, not source-based
   const articleList = articles
-    .map(a => `id:${a.id} | מקור:${a.source} | כותרת: ${a.title}${a.description ? ` | תיאור: ${a.description.slice(0, 120)}` : ''}`)
+    .map(a => `id:${a.id} | כותרת: ${a.title}${a.description ? ` | תיאור: ${a.description.slice(0, 120)}` : ''}`)
     .join('\n');
 
   const prompt = `אתה מנתח עיתונאי ישראלי. לפניך רשימת כתבות חדשות.
 
-דרג כל כתבה על סקאלה של 1 עד 10:
-1 = נגד הממשלה הנוכחית בצורה חזקה מאוד
-5 = ניטרלי / עובדתי
-10 = בעד הממשלה הנוכחית בצורה חזקה מאוד
+דרג כל כתבה על סקאלה של 1 עד 10 לפי תוכן הכותרת והתיאור בלבד:
+1 = ביקורת חריפה על הממשלה הנוכחית
+5 = עובדתי / ניטרלי
+10 = תמיכה חזקה בממשלה הנוכחית
 
-בחן את הניסוח, הטון, מה מודגש ומה מושמט בכותרת ובתיאור.
-כתבות עובדתיות ללא עמדה ברורה — ציון 5.
-כתבות ביקורתיות על הממשלה — 1-4.
-כתבות תומכות בממשלה — 6-10.
+כללים:
+- נתח את ניסוח הכותרת, הטון, מה מודגש ומה מושמט
+- אל תסיק מסקנות לפי שם המקור — הסתמך על התוכן בלבד
+- כתבות עובדתיות ניטרליות — 4-6
+- כתבות עם ביקורת מרומזת — 2-4
+- כתבות עם תמיכה מרומזת — 6-8
+- ציון 1 או 10 רק לכתבות עם עמדה מפורשת וקיצונית
 
 הכתבות:
 ${articleList}`;
@@ -54,7 +58,7 @@ ${articleList}`;
 
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1200,
+      max_tokens: 4000,
       tools: [
         {
           name: 'article_scores',
