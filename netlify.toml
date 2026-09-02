@@ -25,6 +25,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/runs"
+  to = "/.netlify/functions/runs"
+  status = 200
+
+[[redirects]]
   from = "/api/status"
   to = "/.netlify/functions/status"
   status = 200

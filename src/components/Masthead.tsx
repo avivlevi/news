@@ -1,68 +1,56 @@
-import type { StoriesPayload } from '@/types';
+import type { RunSummary, StoriesPayload } from '@/types';
 import { RefreshButton } from './RefreshButton';
+import { RunPicker } from './RunPicker';
+import { stamp } from '@/lib/time';
 
 interface Props {
-  stats: StoriesPayload['stats'] | null;
-  generatedAt: string | null;
+  payload: StoriesPayload | null;
+  runs: RunSummary[];
+  runId: string | null;
+  onPickRun: (id: string | null) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onRefreshed: () => void;
 }
 
-const fmt = (iso: string) =>
-  new Date(iso).toLocaleString('he-IL', {
-    day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
-  });
-
-export function Masthead({ stats, generatedAt, theme, onToggleTheme, onRefreshed }: Props) {
+export function Masthead({ payload, runs, runId, onPickRun, theme, onToggleTheme, onRefreshed }: Props) {
+  const stats = payload?.stats ?? null;
   return (
     <header className="masthead">
       <div className="masthead__bar">
-        <div>
-          <h1 className="masthead__name">אותו אירוע</h1>
-          <p className="masthead__tagline">
-            אותו אירוע, כפי שדווח בשישה אתרי חדשות ישראליים
-          </p>
+        <h1 className="masthead__name">אותו אירוע</h1>
+        <div className="masthead__tools">
+          <RunPicker runs={runs} runId={runId} onPick={onPickRun} />
+          <button
+            className="masthead__theme"
+            onClick={onToggleTheme}
+            aria-label={theme === 'dark' ? 'עבור לתצוגה בהירה' : 'עבור לתצוגה כהה'}
+          >
+            {theme === 'dark' ? 'בהיר' : 'כהה'}
+          </button>
         </div>
-        <button
-          className="masthead__theme"
-          onClick={onToggleTheme}
-          aria-label={theme === 'dark' ? 'עבור לתצוגה בהירה' : 'עבור לתצוגה כהה'}
-        >
-          {theme === 'dark' ? 'בהיר' : 'כהה'}
-        </button>
       </div>
 
       <p className="masthead__thesis">
-        כאן מופיעים אירועים ששני אתרים ומעלה דיווחו עליהם. האתר אינו מדרג אתרים,
-        אינו מייחס להם עמדה ואינו מסמן מי צודק — הוא מציג מה כל אחד כתב, ומה
-        מופיע אצל אחד ולא אצל אחר.
+        אותו אירוע, כפי שדווח בשישה אתרי חדשות ישראליים.
+        <span className="masthead__thesis-rest">
+          {' '}לא מי צודק ולא מי מוטה — אלא מה כל אחד כתב, במה פתח, את מי ציטט, ומה מופיע אצל אחד ולא אצל אחר.
+        </span>
       </p>
 
-      <RefreshButton onFinished={onRefreshed} />
-
-      {stats && (
-        <dl className="ledger">
-          <div className="ledger__cell">
-            <dt>כתבות נסרקו</dt>
-            <dd>{stats.articlesScanned}</dd>
-          </div>
-          <div className="ledger__cell">
-            <dt>אירועים משותפים</dt>
-            <dd>{stats.storiesFound}</dd>
-          </div>
-          <div className="ledger__cell">
-            <dt>מקורות</dt>
-            <dd>{stats.sourcesLive}/{stats.totalSources}</dd>
-          </div>
-          {generatedAt && (
-            <div className="ledger__cell">
-              <dt>נאסף</dt>
-              <dd className="ledger__when">{fmt(generatedAt)}</dd>
-            </div>
-          )}
-        </dl>
-      )}
+      <div className="masthead__row">
+        <RefreshButton onFinished={onRefreshed} />
+        {stats && (
+          <dl className="ledger">
+            <div className="ledger__cell"><dd>{stats.articlesScanned}</dd><dt>כתבות נסרקו</dt></div>
+            <div className="ledger__cell"><dd>{stats.storiesFound}</dd><dt>אירועים משותפים</dt></div>
+            <div className="ledger__cell"><dd>{stats.sourcesLive}/{stats.totalSources}</dd><dt>מקורות</dt></div>
+            {payload?.generatedAt && (
+              <div className="ledger__cell"><dd className="ledger__when">{stamp(payload.generatedAt)}</dd><dt>נאסף</dt></div>
+            )}
+          </dl>
+        )}
+      </div>
     </header>
   );
 }

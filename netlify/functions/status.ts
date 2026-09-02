@@ -1,5 +1,5 @@
 import { getStore } from '@netlify/blobs';
-import type { RunStatus } from '../../src/types.js';
+import type { RunStatus } from '../../shared/types.js';
 
 const IDLE: RunStatus = { stage: 'idle', detail: '', startedAt: null, finishedAt: null };
 

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RunStatus, RunStage } from '@/types';
+import { api } from '@/lib/api';
 
 const STAGE_TEXT: Record<RunStage, string> = {
   idle: '',
   collecting: 'אוסף כתבות',
-  summarising: 'מסכם מה כל אתר פרסם',
-  matching: 'מזהה אירועים משותפים',
+  summarising: 'מסכם מה כל אתר פרסם ומזהה אירועים',
+  matching: 'מאחד כפילויות וקורא את הכתבות',
   reading: 'קורא את הכתבות',
   comparing: 'משווה גרסאות',
   done: 'הושלם',
@@ -13,6 +14,7 @@ const STAGE_TEXT: Record<RunStage, string> = {
 };
 
 const RUNNING: RunStage[] = ['collecting', 'summarising', 'matching', 'reading', 'comparing'];
+const ORDER: RunStage[] = ['collecting', 'summarising', 'matching', 'comparing', 'done'];
 
 /**
  * The run outlives the request that starts it, so the button starts the job and
@@ -24,26 +26,19 @@ export function RefreshButton({ onFinished }: { onFinished: () => void }) {
   const polling = useRef<number | null>(null);
 
   const stop = useCallback(() => {
-    if (polling.current) {
-      window.clearInterval(polling.current);
-      polling.current = null;
-    }
+    if (polling.current) { window.clearInterval(polling.current); polling.current = null; }
   }, []);
-
   useEffect(() => stop, [stop]);
 
   const poll = useCallback(() => {
     stop();
     polling.current = window.setInterval(async () => {
       try {
-        const res = await fetch('/api/status', { cache: 'no-store' });
-        const s = (await res.json()) as RunStatus;
+        const s = await api.status();
         setStatus(s);
         if (s.stage === 'done') { stop(); onFinished(); }
         if (s.stage === 'failed') { stop(); setError(s.detail); }
-      } catch {
-        /* keep polling — a dropped poll shouldn't kill the run's display */
-      }
+      } catch { /* a dropped poll shouldn't kill the run's display */ }
     }, 2000);
   }, [onFinished, stop]);
 
@@ -51,7 +46,7 @@ export function RefreshButton({ onFinished }: { onFinished: () => void }) {
     setError(null);
     setStatus({ stage: 'collecting', detail: 'מתחיל', startedAt: new Date().toISOString(), finishedAt: null });
     try {
-      const res = await fetch('/api/refresh', { method: 'POST' });
+      const res = await api.refresh();
       if (!res.ok && res.status !== 202) throw new Error(`HTTP ${res.status}`);
       poll();
     } catch (e) {
@@ -61,6 +56,7 @@ export function RefreshButton({ onFinished }: { onFinished: () => void }) {
   };
 
   const running = status ? RUNNING.includes(status.stage) : false;
+  const step = status ? Math.max(0, ORDER.indexOf(status.stage === 'reading' ? 'matching' : status.stage)) : 0;
 
   return (
     <div className="refresh">
@@ -69,11 +65,15 @@ export function RefreshButton({ onFinished }: { onFinished: () => void }) {
       </button>
 
       {running && status && (
-        <p className="refresh__progress" role="status">
-          <span className="refresh__spinner" aria-hidden="true" />
+        <div className="refresh__progress" role="status">
+          <ol className="refresh__steps" aria-hidden="true">
+            {ORDER.slice(0, -1).map((s, i) => (
+              <li key={s} className={i < step ? 'is-done' : i === step ? 'is-now' : ''} />
+            ))}
+          </ol>
           <span className="refresh__stage">{STAGE_TEXT[status.stage]}</span>
           {status.detail && <span className="refresh__detail">{status.detail}</span>}
-        </p>
+        </div>
       )}
 
       {error && <p className="refresh__error" role="alert">האיסוף נכשל: {error}</p>}

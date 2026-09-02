@@ -1,73 +1,71 @@
-# React + TypeScript + Vite
+# אותו אירוע
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comparison instrument for Israeli news. It collects the current headlines of six
+sites, finds the events that two or more of them reported, and documents how each
+one reported it: the headline, what the article opens with, who acts in the
+headline, how long it is, who is quoted, which facts appear where, and where the
+versions contradict each other.
 
-Currently, two official plugins are available:
+It passes no verdict. No outlet is labelled, scored or ranked; outlets are always
+listed alphabetically. Everything shown is quoted or counted from the articles.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Live: https://israel-news-aggregator.netlify.app
 
-## React Compiler
+## Sources
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+ynet, N12, חדשות 13, הארץ, i24NEWS, ערוץ 14.
 
-## Expanding the ESLint configuration
+Only ynet and N12 publish a usable RSS feed. The other four come through Google
+News search feeds, whose links are resolved to the real article URL before the
+article is read (`netlify/lib/googlenews.ts`). חדשות 13 refuses a browser
+user agent but serves a plain one, so the extractor retries with one.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## How a run works
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+`netlify/lib/pipeline.ts`, in order:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. **collect** — every feed in parallel, 48-hour window, Google links resolved (cached).
+2. **summarise + match** — in parallel: Claude writes a per-site digest of everything
+   collected, and groups articles into single events. Matching is done by a model,
+   not by title similarity: outlets word the same event differently, which is the
+   whole subject.
+3. **merge + read** — in parallel: a cheap model pass joins events the matcher split
+   in two, while the full text of every matched article is downloaded (cached 24h).
+4. **compare** — one model call per event that is new since the previous run.
+   Events whose member articles are unchanged reuse the previous analysis.
+5. **store** — the payload becomes the latest, is kept under `runs/<id>`, and a
+   compact summary is appended to `runs-index` for the lexicon and coverage views.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+A run takes one to three minutes and only happens when someone presses the button.
+There is no schedule.
+
+## Working on it
+
+```bash
+npm install
+npm run pipeline            # run the pipeline from the terminal → data/latest.json
+npm run pipeline -- --publish   # ...and show it in the local dev site
+netlify dev                 # site + functions + local blob store on :8889
+npm run typecheck
+npm run lint
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The API key is read from `ANTHROPIC_API_KEY`, then `.env`, then `netlify env:get`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Deploying
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+There is no CI. The Netlify site is not linked to the repository; pushing to GitHub
+does nothing. To ship:
+
+```bash
+npm run build
+netlify deploy --prod --dir=dist
 ```
+
+## Layout
+
+- `shared/` — types and outlet metadata used by both the site and the functions.
+- `netlify/lib/` — the pipeline: feeds, Google News resolver, extractor, model passes, cache, history.
+- `netlify/functions/` — `refresh-background` (the run), `stories`, `runs`, `status`.
+- `src/` — React app. Hand-written CSS in `src/app.css`.
+- `scripts/run-pipeline.ts` — the terminal runner.

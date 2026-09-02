@@ -1,61 +1,70 @@
 /* ------------------------------------------------------------------ *
- * Prisma — an instrument for reading the Israeli press against itself.
+ * אותו אירוע — a comparison instrument, not a newspaper.
  *
- * The chrome is deliberately desaturated: eight outlet brand colours
- * already live on this page as data, and any accent of our own would
- * compete with them for meaning.
+ * Two voices, two faces: everything an outlet wrote is set in a serif
+ * (Frank Ruhl Libre) — it is a quotation. Everything we wrote is set in a
+ * sans (Heebo) — it is the instrument's labelling. The masthead alone is
+ * Suez One. Six brand colours are the only saturation on the page; our own
+ * one accent, violet, marks the single thing we assert: a contradiction.
  * ------------------------------------------------------------------ */
 
 :root {
-  --paper: #e6e8ec;
+  color-scheme: light;
+  --paper: #f3f2ee;
   --surface: #ffffff;
-  --surface-2: #f3f5f8;
-  --ink: #0d1015;
-  --ink-2: #565e6b;
-  --ink-3: #8a929e;
-  --rule: #d3d8e0;
-  --shadow: 0 1px 2px rgb(13 16 21 / 0.04), 0 8px 24px -12px rgb(13 16 21 / 0.14);
-  --shadow-lift: 0 2px 4px rgb(13 16 21 / 0.05), 0 16px 40px -16px rgb(13 16 21 / 0.2);
+  --surface-2: #f7f6f3;
+  --ink: #141822;
+  --ink-2: #4d5563;
+  --ink-3: #8a919d;
+  --rule: #dcdbd5;
+  --rule-2: #ebeae5;
+  --clash: #6d28d9;
+  --clash-soft: #efe9fb;
+  --shadow: 0 1px 2px rgb(20 24 34 / 0.05), 0 12px 32px -18px rgb(20 24 34 / 0.18);
 
-  --display: 'Frank Ruhl Libre', ui-serif, Georgia, serif;
-  --body: 'Assistant', ui-sans-serif, system-ui, sans-serif;
+  --display: 'Suez One', 'Frank Ruhl Libre', serif;
+  --quote: 'Frank Ruhl Libre', 'David', Georgia, serif;
+  --body: 'Heebo', 'Assistant', system-ui, sans-serif;
   --data: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
 
   --gutter: clamp(1rem, 4vw, 2.5rem);
-  --measure: 62rem;
-  --flag: #b4341f;
+  --measure: 78rem;
+  --radius: 10px;
 }
 
 :root[data-theme='dark'] {
-  --flag: #e06a52;
-  --paper: #0b0d11;
-  --surface: #14171d;
-  --surface-2: #1a1e25;
-  --ink: #eef0f4;
-  --ink-2: #98a0ad;
-  --ink-3: #69707c;
-  --rule: #262b34;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.7);
-  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 40px -16px rgb(0 0 0 / 0.8);
+  color-scheme: dark;
+  --paper: #0f1216;
+  --surface: #171b21;
+  --surface-2: #1d2228;
+  --ink: #edeff3;
+  --ink-2: #a3aab6;
+  --ink-3: #6f7784;
+  --rule: #2a3039;
+  --rule-2: #222830;
+  --clash: #a78bfa;
+  --clash-soft: #26203a;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -18px rgb(0 0 0 / 0.8);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --flag: #e06a52;
-    --paper: #0b0d11;
-    --surface: #14171d;
-    --surface-2: #1a1e25;
-    --ink: #eef0f4;
-    --ink-2: #98a0ad;
-    --ink-3: #69707c;
-    --rule: #262b34;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.7);
-    --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 40px -16px rgb(0 0 0 / 0.8);
+    color-scheme: dark;
+    --paper: #0f1216;
+    --surface: #171b21;
+    --surface-2: #1d2228;
+    --ink: #edeff3;
+    --ink-2: #a3aab6;
+    --ink-3: #6f7784;
+    --rule: #2a3039;
+    --rule-2: #222830;
+    --clash: #a78bfa;
+    --clash-soft: #26203a;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -18px rgb(0 0 0 / 0.8);
   }
 }
 
 * { box-sizing: border-box; }
-
 html { -webkit-text-size-adjust: 100%; }
 
 body {
@@ -63,26 +72,29 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--body);
-  font-size: 17px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3 { margin: 0; font-weight: 700; line-height: 1.25; }
-p { margin: 0; }
-button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
-a { color: inherit; }
+h1, h2, h3, h4 { margin: 0; font-weight: 700; line-height: 1.25; }
+p, dl, dd, dt, ul, ol { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; padding: 0; }
+button:disabled { cursor: default; }
+a { color: inherit; text-decoration: none; }
+q { quotes: '„' '“'; }
+img { max-width: 100%; display: block; }
+table { border-collapse: collapse; }
 
-:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 3px;
-  border-radius: 4px;
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

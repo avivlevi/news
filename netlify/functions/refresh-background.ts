@@ -1,6 +1,8 @@
 import { getStore } from '@netlify/blobs';
+import { blobCache } from '../lib/cache.js';
+import { appendRun, summarise } from '../lib/history.js';
 import { buildStories } from '../lib/pipeline.js';
-import type { RunStatus, RunStage, StoriesPayload } from '../../src/types.js';
+import type { RunStatus, RunStage, RunSummary, StoriesPayload } from '../../shared/types.js';
 
 const STORE = 'news';
 const RUNNING: RunStage[] = ['collecting', 'summarising', 'matching', 'reading', 'comparing'];
@@ -44,9 +46,10 @@ export default async () => {
 
   try {
     await write('collecting', 'מתחיל');
-    const payload = await buildStories(apiKey, (stage, detail) =>
-      write(stage as RunStage, detail, false)
-    );
+    const payload = await buildStories(apiKey, {
+      cache: blobCache(store),
+      onProgress: (stage, detail) => write(stage as RunStage, detail, false),
+    });
 
     // An empty result is a failed run, not a news day with nothing shared.
     // Never let it replace a good payload.
@@ -59,7 +62,15 @@ export default async () => {
       }
     }
 
-    await store.setJSON('stories', payload);
+    // Every run is kept: the latest under `stories`, all of them under `runs/`.
+    const index = ((await store.get('runs-index', { type: 'json' })) as RunSummary[] | null) ?? [];
+    const { index: nextIndex, dropped } = appendRun(index, summarise(payload));
+    await Promise.all([
+      store.setJSON('stories', payload),
+      store.setJSON(`runs/${payload.runId}`, payload),
+      store.setJSON('runs-index', nextIndex),
+      ...dropped.map(id => store.delete(`runs/${id}`).catch(() => {})),
+    ]);
     await write('done', `${payload.stats.storiesFound} אירועים`, true);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
