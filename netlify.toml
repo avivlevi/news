@@ -2,45 +2,31 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  NODE_VERSION = "20"
+
 [dev]
   command = "npm run dev -- --port 5190"
   targetPort = 5190
   port = 8889
 
-[build.environment]
-  NODE_VERSION = "20"
-
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 [[redirects]]
-  from = "/api/news"
-  to = "/.netlify/functions/news"
+  from = "/api/stories"
+  to = "/.netlify/functions/stories"
   status = 200
 
 [[redirects]]
-  from = "/api/article"
-  to = "/.netlify/functions/article"
+  from = "/api/refresh"
+  to = "/.netlify/functions/refresh-background"
   status = 200
 
 [[redirects]]
-  from = "/api/compare"
-  to = "/.netlify/functions/compare"
-  status = 200
-
-[[redirects]]
-  from = "/api/summary"
-  to = "/.netlify/functions/summary"
-  status = 200
-
-[[redirects]]
-  from = "/api/scores"
-  to = "/.netlify/functions/scores"
-  status = 200
-
-[[redirects]]
-  from = "/api/debug"
-  to = "/.netlify/functions/debug"
+  from = "/api/status"
+  to = "/.netlify/functions/status"
   status = 200
 
 [[redirects]]

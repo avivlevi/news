@@ -1,182 +1,88 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+/* ------------------------------------------------------------------ *
+ * Prisma — an instrument for reading the Israeli press against itself.
+ *
+ * The chrome is deliberately desaturated: eight outlet brand colours
+ * already live on this page as data, and any accent of our own would
+ * compete with them for meaning.
+ * ------------------------------------------------------------------ */
 
-@custom-variant dark (&:is(.dark *));
-
-/* ── Palette overrides ───────────────────────────────────────────── */
 :root {
-  --background:        oklch(0.985 0.004 75);
-  --foreground:        oklch(0.14  0.010 55);
-  --card:              oklch(1     0     0);
-  --card-foreground:   oklch(0.14  0.010 55);
-  --popover:           oklch(1     0     0);
-  --popover-foreground:oklch(0.14  0.010 55);
-  --primary:           oklch(0.14  0.010 55);
-  --primary-foreground:oklch(0.985 0.004 75);
-  --secondary:         oklch(0.96  0.004 75);
-  --secondary-foreground:oklch(0.14 0.010 55);
-  --muted:             oklch(0.96  0.004 75);
-  --muted-foreground:  oklch(0.50  0.015 55);
-  --accent:            oklch(0.96  0.004 75);
-  --accent-foreground: oklch(0.14  0.010 55);
-  --destructive:       oklch(0.58  0.24  27);
-  --border:            oklch(0.90  0.005 75);
-  --input:             oklch(0.90  0.005 75);
-  --ring:              oklch(0.50  0.015 55);
-  --radius:            0.75rem;
+  --paper: #e6e8ec;
+  --surface: #ffffff;
+  --surface-2: #f3f5f8;
+  --ink: #0d1015;
+  --ink-2: #565e6b;
+  --ink-3: #8a929e;
+  --rule: #d3d8e0;
+  --shadow: 0 1px 2px rgb(13 16 21 / 0.04), 0 8px 24px -12px rgb(13 16 21 / 0.14);
+  --shadow-lift: 0 2px 4px rgb(13 16 21 / 0.05), 0 16px 40px -16px rgb(13 16 21 / 0.2);
 
-  /* source brand colors */
-  --ynet-color:        #e0001a;
-  --n12-color:         #008080;
-  --israelhayom-color: #1a4fa0;
-  --c14-color:         #f97316;
+  --display: 'Frank Ruhl Libre', ui-serif, Georgia, serif;
+  --body: 'Assistant', ui-sans-serif, system-ui, sans-serif;
+  --data: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+  --measure: 62rem;
+  --flag: #b4341f;
 }
 
-.dark {
-  --background:        oklch(0.10  0     0);
-  --foreground:        oklch(0.95  0     0);
-  --card:              oklch(0.14  0     0);
-  --card-foreground:   oklch(0.95  0     0);
-  --popover:           oklch(0.14  0     0);
-  --popover-foreground:oklch(0.95  0     0);
-  --primary:           oklch(0.95  0     0);
-  --primary-foreground:oklch(0.14  0     0);
-  --secondary:         oklch(0.19  0     0);
-  --secondary-foreground:oklch(0.95 0    0);
-  --muted:             oklch(0.19  0     0);
-  --muted-foreground:  oklch(0.62  0     0);
-  --accent:            oklch(0.19  0     0);
-  --accent-foreground: oklch(0.95  0     0);
-  --border:            oklch(0.22  0     0);
-  --input:             oklch(0.22  0     0);
-  --ring:              oklch(0.55  0     0);
+:root[data-theme='dark'] {
+  --flag: #e06a52;
+  --paper: #0b0d11;
+  --surface: #14171d;
+  --surface-2: #1a1e25;
+  --ink: #eef0f4;
+  --ink-2: #98a0ad;
+  --ink-3: #69707c;
+  --rule: #262b34;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 40px -16px rgb(0 0 0 / 0.8);
 }
 
-@theme inline {
-  --font-sans: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --color-background:  var(--background);
-  --color-foreground:  var(--foreground);
-  --color-card:        var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-primary:     var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary:   var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted:       var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent:      var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border:      var(--border);
-  --color-input:       var(--input);
-  --color-ring:        var(--ring);
-  --color-popover:     var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --radius-sm:   calc(var(--radius) * 0.6);
-  --radius-md:   calc(var(--radius) * 0.8);
-  --radius-lg:   var(--radius);
-  --radius-xl:   calc(var(--radius) * 1.4);
-  --radius-2xl:  calc(var(--radius) * 1.8);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --flag: #e06a52;
+    --paper: #0b0d11;
+    --surface: #14171d;
+    --surface-2: #1a1e25;
+    --ink: #eef0f4;
+    --ink-2: #98a0ad;
+    --ink-3: #69707c;
+    --rule: #262b34;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+    --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 40px -16px rgb(0 0 0 / 0.8);
+  }
 }
 
-/* ── Base resets ─────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; }
+* { box-sizing: border-box; }
 
-html {
-  scroll-behavior: smooth;
-  text-size-adjust: 100%;
-}
+html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  padding: 0;
-  min-height: 100vh;
-  direction: rtl;
-  font-family: var(--font-sans);
-  background: var(--background);
-  color: var(--foreground);
-  text-rendering: optimizeLegibility;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-@layer base {
-  * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground; }
-  html { @apply font-sans; }
+h1, h2, h3 { margin: 0; font-weight: 700; line-height: 1.25; }
+p { margin: 0; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+a { color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
-/* ── Card elevation ──────────────────────────────────────────────── */
-.card-shadow {
-  box-shadow:
-    0 1px 3px oklch(0 0 0 / 0.06),
-    0 4px 12px oklch(0 0 0 / 0.05);
-  transition:
-    box-shadow 0.25s ease,
-    transform 0.25s ease;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
-.card-shadow:hover {
-  box-shadow:
-    0 2px 8px oklch(0 0 0 / 0.10),
-    0 12px 32px oklch(0 0 0 / 0.10);
-  transform: translateY(-2px);
-}
-.dark .card-shadow {
-  box-shadow:
-    0 1px 3px oklch(0 0 0 / 0.4),
-    0 4px 12px oklch(0 0 0 / 0.3);
-}
-.dark .card-shadow:hover {
-  box-shadow:
-    0 2px 8px oklch(0 0 0 / 0.5),
-    0 12px 32px oklch(0 0 0 / 0.4);
-}
-
-/* ── Image overlay gradient ──────────────────────────────────────── */
-.img-overlay::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to top,
-    oklch(0 0 0 / 0.80) 0%,
-    oklch(0 0 0 / 0.30) 45%,
-    transparent 70%
-  );
-  border-radius: inherit;
-}
-
-/* ── Source spectrum bar ─────────────────────────────────────────── */
-.spectrum-bar {
-  display: flex;
-  height: 4px;
-  border-radius: 0 0 var(--radius) var(--radius);
-  overflow: hidden;
-}
-.spectrum-bar > * { flex: 1; }
-
-/* ── Scrollbar ───────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
-
-/* ── Live dot ────────────────────────────────────────────────────── */
-@keyframes live-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-.live-dot { animation: live-pulse 2s ease-in-out infinite; }
-
-/* ── Reading typography ──────────────────────────────────────────── */
-.article-body p {
-  margin-bottom: 1rem;
-  line-height: 1.75;
-  font-size: 1rem;
-}
-.article-body p:last-child { margin-bottom: 0; }

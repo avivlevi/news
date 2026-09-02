@@ -1,147 +1,175 @@
-import { useState, useEffect } from 'react';
-import { NewsHeader } from '@/components/NewsHeader';
-import { NewsGrid } from '@/components/NewsGrid';
-import { ArticleModal } from '@/components/ArticleModal';
-import { NewsSummary } from '@/components/NewsSummary';
-import { clusterArticles } from '@/lib/clustering';
-import type { Cluster, SourceId, NewsApiResponse, SummaryState, Article } from '@/types';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { SourceId, StoriesPayload } from '@/types';
+import { Masthead } from '@/components/Masthead';
+import { StoryCard } from '@/components/StoryCard';
+import { Digest } from '@/components/Digest';
+import { SourceFilter } from '@/components/SourceFilter';
+import { alphabetical } from '@/lib/sources';
+import './app.css';
 
-function useDarkMode() {
-  const [dark, setDark] = useState(() => {
-    if (typeof window === 'undefined') return false;
+type Theme = 'light' | 'dark';
+type State =
+  | { status: 'loading' }
+  | { status: 'empty' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; data: StoriesPayload };
+
+function useTheme() {
+  const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem('theme');
-    if (stored) return stored === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'light' || stored === 'dark') return stored;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (dark) {
-      root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [dark]);
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
-  return [dark, setDark] as const;
+  return [theme, () => setTheme(t => (t === 'dark' ? 'light' : 'dark'))] as const;
 }
 
-export function App() {
-  const [dark, setDark] = useDarkMode();
-  const [clusters, setClusters] = useState<Cluster[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
-  const [activeSource, setActiveSource] = useState<SourceId | 'all'>('all');
-  const [openCluster, setOpenCluster] = useState<Cluster | null>(null);
-  const [summary, setSummary] = useState<SummaryState>({ status: 'idle' });
-  const [articleScores, setArticleScores] = useState<Record<string, number>>({});
+const FILTER_KEY = 'sources';
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-
-    async function fetchNews() {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await fetch('/api/news', { signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as NewsApiResponse;
-        setFetchedAt(data.fetchedAt);
-        setClusters(clusterArticles(data.articles));
-
-        // Fetch per-article bias scores (limit to 40 — full 160 exceeds Netlify 10s timeout)
-        fetch('/api/scores', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            articles: data.articles.map((a: Article) => ({
-              id: a.id, title: a.title, description: a.description, source: a.source,
-            })),
-          }),
-          signal,
-        })
-          .then(r => r.json() as Promise<{ scores?: Record<string, number> }>)
-          .then(d => { if (!signal.aborted && d.scores) setArticleScores(d.scores); })
-          .catch(() => {});
-
-        setSummary({ status: 'loading' });
-        fetch('/api/summary', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            articles: data.articles.slice(0, 30).map(a => ({
-              title: a.title,
-              description: a.description,
-              source: a.source,
-            })),
-          }),
-          signal,
-        })
-          .then(r => r.json() as Promise<{ points?: string[]; topics?: string[]; error?: string }>)
-          .then(d => {
-            if (signal.aborted) return;
-            setSummary(
-              Array.isArray(d.points) && d.points.length > 0
-                ? { status: 'success', points: d.points, topics: Array.isArray(d.topics) ? d.topics : [] }
-                : { status: 'error' }
-            );
-          })
-          .catch(e => { if (!signal.aborted) setSummary({ status: 'error' }); void e; });
-      } catch (e) {
-        if (signal.aborted) return;
-        setError(e instanceof Error ? e.message : 'שגיאה בטעינת החדשות');
-      } finally {
-        if (!signal.aborted) setLoading(false);
-      }
+function useSourceFilter() {
+  const [selected, setSelected] = useState<Set<SourceId>>(() => {
+    try {
+      const raw = localStorage.getItem(FILTER_KEY);
+      return new Set(raw ? (JSON.parse(raw) as SourceId[]) : []);
+    } catch {
+      return new Set();
     }
+  });
 
-    void fetchNews();
-    return () => controller.abort();
+  const persist = (next: Set<SourceId>) => {
+    setSelected(next);
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify([...next]));
+    } catch {
+      /* a blocked storage write shouldn't break filtering */
+    }
+  };
+
+  const toggle = (id: SourceId) => {
+    const next = new Set(selected);
+    if (!next.delete(id)) next.add(id);
+    persist(next);
+  };
+
+  return { selected, toggle, clear: () => persist(new Set<SourceId>()) };
+}
+
+export default function App() {
+  const [theme, toggleTheme] = useTheme();
+  const [state, setState] = useState<State>({ status: 'loading' });
+  const { selected, toggle, clear } = useSourceFilter();
+
+  /** Reads what was already collected. Collecting itself only happens on the button. */
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch('/api/stories', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as StoriesPayload & { pending?: boolean };
+      setState(
+        data.pending || data.stories.length === 0
+          ? { status: 'empty' }
+          : { status: 'ready', data }
+      );
+    } catch (e) {
+      setState({ status: 'error', message: e instanceof Error ? e.message : String(e) });
+    }
   }, []);
 
-  const filteredClusters =
-    activeSource === 'all'
-      ? clusters
-      : clusters
-          .map(c => ({
-            ...c,
-            articles: c.articles.filter(a => a.source === activeSource),
-          }))
-          .filter(c => c.articles.length > 0);
+  useEffect(() => { void load(); }, [load]);
+
+  const data = state.status === 'ready' ? state.data : null;
+
+  const view = useMemo(() => {
+    if (!data) return null;
+
+    // Include sites that published but matched no shared event — they still
+    // have a digest paragraph, so they must remain selectable.
+    const available = [...new Set([
+      ...data.stories.flatMap(s => s.takes.map(t => t.source)),
+      ...(data.digest ?? []).map(d => d.source),
+    ])].sort(alphabetical);
+
+    // A story stays if any selected site covered it — its other versions are
+    // kept, since removing them would break the comparison the page exists for.
+    const stories = selected.size === 0
+      ? data.stories
+      : data.stories.filter(s => s.takes.some(t => selected.has(t.source)));
+
+    const digest = selected.size === 0
+      ? data.digest
+      : data.digest?.filter(d => selected.has(d.source));
+
+    return { available, stories, digest, total: data.stories.length };
+  }, [data, selected]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300" dir="rtl">
-      <NewsHeader
-        fetchedAt={fetchedAt}
-        activeSource={activeSource}
-        onSourceChange={setActiveSource}
-        dark={dark}
-        onToggleDark={() => setDark(d => !d)}
+    <div className="shell">
+      <Masthead
+        stats={state.status === 'ready' ? state.data.stats : null}
+        generatedAt={state.status === 'ready' ? state.data.generatedAt : null}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onRefreshed={load}
       />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {!loading && !error && <NewsSummary state={summary} />}
-        {error ? (
-          <div className="text-center text-destructive py-16 text-lg">{error}</div>
-        ) : (
-          <NewsGrid
-            clusters={filteredClusters}
-            loading={loading}
-            onOpenCluster={setOpenCluster}
-            articleScores={articleScores}
-          />
+
+      <main className="feed">
+        {state.status === 'loading' && <p className="notice">טוען…</p>}
+
+        {state.status === 'empty' && (
+          <div className="notice">
+            <p className="notice__lead">עוד לא נאספו כתבות.</p>
+            <p>לחץ על «אסוף חדשות עכשיו» כדי להתחיל. האיסוף אורך כשתי דקות.</p>
+          </div>
+        )}
+
+        {state.status === 'error' && (
+          <div className="notice">
+            <p className="notice__lead">לא הצלחנו לטעון את הנתונים.</p>
+            <p>רענן את העמוד כדי לנסות שוב. ({state.message})</p>
+          </div>
+        )}
+
+        {view && (
+          <>
+            <SourceFilter
+              available={view.available}
+              selected={selected}
+              onToggle={toggle}
+              onClear={clear}
+              shown={view.stories.length}
+              total={view.total}
+            />
+
+            <Digest entries={view.digest} />
+
+            {view.stories.length === 0 ? (
+              <div className="notice">
+                <p className="notice__lead">אין אירועים לאתרים שנבחרו.</p>
+                <p>בחר אתר נוסף או לחץ «הכל».</p>
+              </div>
+            ) : (
+              view.stories.map(s => <StoryCard key={s.id} story={s} />)
+            )}
+          </>
         )}
       </main>
 
-      <ArticleModal
-        cluster={openCluster}
-        onClose={() => setOpenCluster(null)}
-      />
+      <footer className="foot">
+        <p>
+          המקורות: ynet, N12, חדשות 13, הארץ, i24NEWS וערוץ 14.
+          האתרים מוצגים תמיד בסדר אלפביתי.
+        </p>
+        <p className="foot__method">
+          שיטה: תא ריק בטבלה מציין שהטענה אינה מופיעה באותה כתבה — ותו לא.
+          אורך הכתבה אינו נלקח בחשבון, ולכן ידיעה קצרה תיראה כמכילה פחות פרטים
+          מכתבה מורחבת.
+        </p>
+      </footer>
     </div>
   );
 }
-
-export default App;

@@ -1,28 +1,13 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
+// Serve the app through `netlify dev` (port 8889) — it owns the /api redirects
+// and injects the function environment. Hitting the bare Vite port has no API.
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [react()],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    alias: { '@': path.resolve(__dirname, './src') },
   },
-  server: {
-    port: 5190,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:9001/.netlify/functions',
-        rewrite: path => path.replace(/^\/api/, ''),
-        changeOrigin: true,
-        timeout: 35000,
-        proxyTimeout: 35000,
-      },
-    },
-  },
-})
+  server: { port: 5190 },
+});
