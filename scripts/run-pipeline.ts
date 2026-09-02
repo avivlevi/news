@@ -71,7 +71,7 @@ const cache = fileCache(join(DATA, 'cache'), async () => {
 
 const payload = await buildStories(key, {
   cache,
-  perSource: Number(opt('--per-source') ?? 30),
+  perSource: opt('--per-source') ? Number(opt('--per-source')) : undefined,
   noReuse: flag('--no-reuse'),
 });
 

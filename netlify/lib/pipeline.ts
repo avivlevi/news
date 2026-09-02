@@ -5,10 +5,17 @@ import { type PipelineCache, noCache } from './cache.js';
 import { mapLimit } from './concurrency.js';
 import { buildDigest } from './digest.js';
 import { fetchBody, type Body } from './extract.js';
-import { fetchAllFeeds, type RawArticle } from './feeds.js';
+import { fetchAllFeeds, resolveGoogleUrls, type RawArticle } from './feeds.js';
 import { runIdFor } from './history.js';
 import { makeClient } from './llm.js';
 import { matchStories, mergeGroups, type MatchGroup } from './match.js';
+
+/**
+ * Newest articles kept per outlet. The busiest sites publish 150+ a day, so
+ * this is a few hours of their output against a whole day of a quiet one — the
+ * matcher's 36h window and the digest both see exactly this slice.
+ */
+export const PER_SOURCE = 50;
 
 export type Progress = (stage: string, detail: string) => Promise<unknown> | void;
 
@@ -23,6 +30,7 @@ export interface PipelineOptions {
 /** Full text for every article that made it into a group, cached, a few at a time. */
 async function readBodies(groups: MatchGroup[], articles: RawArticle[], cache: PipelineCache) {
   const wanted = [...new Set(groups.flatMap(g => membersOf(g, articles)))];
+  await resolveGoogleUrls(wanted, cache);
   const bodies = new Map<string, Body>();
   await mapLimit(wanted, 6, async a => {
     bodies.set(a.id, await fetchBody(a.url, `${a.title}. ${a.description}`.trim(), cache));
@@ -43,7 +51,7 @@ export async function buildStories(apiKey: string, opts: PipelineOptions = {}): 
 
   await report('collecting', 'אוסף כתבות מהמקורות');
   const [{ articles, live }, previous] = await Promise.all([
-    fetchAllFeeds(opts.perSource ?? 30, cache),
+    fetchAllFeeds(opts.perSource ?? PER_SOURCE),
     opts.noReuse ? Promise.resolve([] as Story[]) : cache.previousStories().catch(() => [] as Story[]),
   ]);
 
@@ -78,6 +86,7 @@ export async function buildStories(apiKey: string, opts: PipelineOptions = {}): 
   const settled = await mapLimit(fresh, 5, async w => {
     try {
       const missing = w.members.filter(m => !bodies.has(m.id));
+      await resolveGoogleUrls(missing, cache);
       for (const m of missing) bodies.set(m.id, await fetchBody(m.url, `${m.title}. ${m.description}`.trim(), cache));
       return await analyseStory(client, w.g, w.members, bodies);
     } catch (e) {

@@ -15,22 +15,32 @@ Live: https://israel-news-aggregator.netlify.app
 
 ynet, N12, חדשות 13, הארץ, i24NEWS, ערוץ 14.
 
-Only ynet and N12 publish a usable RSS feed. The other four come through Google
-News search feeds, whose links are resolved to the real article URL before the
-article is read (`netlify/lib/googlenews.ts`). חדשות 13 refuses a browser
-user agent but serves a plain one, so the extractor retries with one.
+Where each outlet's current article list comes from (`netlify/lib/feeds.ts`):
+
+| Outlet | Source | Why |
+|---|---|---|
+| ynet, הארץ, ערוץ 14, i24 | Google-News sitemap | Every article of the last two days, title, time, image, direct URL |
+| N12 | Five section RSS feeds, merged | Each feed is only 20 items |
+| חדשות 13 | Its news front page's embedded Next.js data | No feed, no sitemap, and its bot-wall serves a plain user agent but not a browser one |
+
+Google News search RSS remains as a fallback kind for a site with none of the above;
+its links are Google redirects and get resolved lazily, since Google rate-limits
+the resolver after about a hundred lookups per IP.
+
+Each outlet contributes its newest 50 fresh articles per run.
 
 ## How a run works
 
 `netlify/lib/pipeline.ts`, in order:
 
-1. **collect** — every feed in parallel, 48-hour window, Google links resolved (cached).
+1. **collect** — every outlet in parallel, 48-hour window, newest 50 each.
 2. **summarise + match** — in parallel: Claude writes a per-site digest of everything
    collected, and groups articles into single events. Matching is done by a model,
    not by title similarity: outlets word the same event differently, which is the
    whole subject.
 3. **merge + read** — in parallel: a cheap model pass joins events the matcher split
    in two, while the full text of every matched article is downloaded (cached 24h).
+   Any Google redirect links among matched articles are resolved here.
 4. **compare** — one model call per event that is new since the previous run.
    Events whose member articles are unchanged reuse the previous analysis.
 5. **store** — the payload becomes the latest, is kept under `runs/<id>`, and a
