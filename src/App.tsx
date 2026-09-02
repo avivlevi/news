@@ -104,11 +104,15 @@ export default function App() {
       ...(data.digest ?? []).map(d => d.source),
     ])].sort(alphabetical);
 
-    // A story stays if any selected site covered it — its other versions are
-    // kept, since removing them would break the comparison the page exists for.
+    // Selecting sites narrows to events that ALL of them covered — the point
+    // of picking two sites is to compare those two. Other versions of the
+    // event are kept, since removing them would break the comparison.
     const stories = selected.size === 0
       ? data.stories
-      : data.stories.filter(s => s.takes.some(t => selected.has(t.source)));
+      : data.stories.filter(s => {
+          const covered = new Set(s.takes.map(t => t.source));
+          return [...selected].every(id => covered.has(id));
+        });
     const digest = selected.size === 0
       ? data.digest
       : data.digest?.filter(d => selected.has(d.source));
@@ -171,8 +175,8 @@ export default function App() {
             />
             {feed.stories.length === 0 ? (
               <div className="notice">
-                <p className="notice__lead">אין אירועים לאתרים שנבחרו.</p>
-                <p>בחר אתר נוסף או לחץ «הכל».</p>
+                <p className="notice__lead">אין אירוע שכל האתרים שנבחרו דיווחו עליו.</p>
+                <p>הסר אתר מהבחירה או לחץ «הכל».</p>
               </div>
             ) : (
               <div className="feed">

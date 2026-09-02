@@ -113,6 +113,7 @@
 .filter { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
 .filter__row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .filter__count { font-family: var(--data); font-size: 0.8rem; color: var(--ink-3); }
+.filter__hint { font-family: var(--body); }
 
 .chip {
   display: inline-flex; align-items: center; gap: 0.4rem;

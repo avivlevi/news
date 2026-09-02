@@ -44,6 +44,9 @@ export function SourceFilter({ available, selected, onToggle, onClear, shown, to
       </div>
       <p className="filter__count" role="status">
         {filtering ? `${shown} מתוך ${total} ${unit}` : `${total} ${unit}`}
+        {selected.size > 1 && unit === 'אירועים' && (
+          <span className="filter__hint"> · רק אירועים שכל האתרים שנבחרו דיווחו עליהם</span>
+        )}
       </p>
     </section>
   );
