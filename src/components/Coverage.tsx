@@ -62,6 +62,9 @@ export function Coverage({ events, coverage, outlets }: {
           <h3 className="block__title">
             אירועים שדווחו בשלושה אתרים ומעלה ולא ב{sourceName(openMissed)}
           </h3>
+          {coverage.find(c => c.source === openMissed)!.missed.length === 0 && (
+            <p className="notice">אין כאלה: {sourceName(openMissed)} דיווח על כל אירוע שדווח בשלושה אתרים ומעלה.</p>
+          )}
           <ul>
             {coverage.find(c => c.source === openMissed)!.missed.map(e => (
               <li key={e.id}>
