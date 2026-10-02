@@ -35,10 +35,10 @@ export const ORDERED_SOURCES = [...ALL_SOURCES].sort(alphabetical);
 
 /**
  * Outlets whose front page renders only its top screens to a server; the rest
- * loads as the reader scrolls. For them, "not found on the front page" means
- * "not in its top part", nothing more.
+ * loads as the reader scrolls (הארץ: ~46 of ~63 articles). For them, "not
+ * found on the front page" means "not in its top part", nothing more.
  */
-export const PARTIAL_FRONT: ReadonlySet<SourceId> = new Set<SourceId>(['haaretz', 'i24']);
+export const PARTIAL_FRONT: ReadonlySet<SourceId> = new Set<SourceId>(['haaretz']);
 
 export const notOnFront = (id: SourceId) =>
   PARTIAL_FRONT.has(id) ? 'לא בחלק העליון של העמוד' : 'לא הופיע';

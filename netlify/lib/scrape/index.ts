@@ -5,7 +5,7 @@ import { parser as haaretz } from './haaretz.js';
 import { parser as i24 } from './i24.js';
 import { parser as n12 } from './n12.js';
 import { parser as t13 } from './t13.js';
-import { BROWSER_HEADERS, type FrontItem, type FrontPageParser } from './types.js';
+import { BROWSER_HEADERS, PLAIN_HEADERS, type FrontItem, type FrontPageParser } from './types.js';
 import { parser as ynet } from './ynet.js';
 
 export const PARSERS: Record<SourceId, FrontPageParser> = { c14, haaretz, i24, n12, t13, ynet };
@@ -26,14 +26,27 @@ export interface ScrapeResult {
   ms: number;
 }
 
+/**
+ * Bot-walls differ: some refuse a browser user agent that runs no JavaScript,
+ * others refuse anything that isn't a browser, and some only from a data
+ * centre (Netlify) rather than a home connection. A refusal gets one retry
+ * with the other kind of headers.
+ */
+async function fetchPage(p: FrontPageParser): Promise<Response> {
+  const first = p.headers ?? BROWSER_HEADERS;
+  const second = first === PLAIN_HEADERS ? BROWSER_HEADERS : PLAIN_HEADERS;
+  let res: Response | null = null;
+  for (const headers of [first, second]) {
+    res = await fetch(p.url, { headers, signal: AbortSignal.timeout(15_000), redirect: 'follow' });
+    if (res.status !== 403 && res.status !== 406 && res.status !== 429) return res;
+  }
+  return res!;
+}
+
 export async function scrapeOne(p: FrontPageParser): Promise<ScrapeResult> {
   const t0 = Date.now();
   try {
-    const res = await fetch(p.url, {
-      headers: p.headers ?? BROWSER_HEADERS,
-      signal: AbortSignal.timeout(15_000),
-      redirect: 'follow',
-    });
+    const res = await fetchPage(p);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     // A ticker sits beside the page body, not above it: count body positions
     // first so "position 5" means the same thing on every site.

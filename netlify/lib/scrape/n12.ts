@@ -5,17 +5,16 @@ const BASE = 'https://www.n12.co.il/';
 
 /**
  * Teaser kinds that send a reader to an article. Left out: `advertisingTeaser`
- * (sponsored), `embededTeaser` (iframes: storycards, election widgets),
- * `banner`, and `shortItem` — the "הסרטונים החמים" video carousel, ~40 clips
- * of which a reader sees four, with no article behind them.
+ * (sponsored), `embededTeaser` (iframes: storycards, election widgets) and
+ * `banner`. `shortItem` is N12's running flash strip — timestamped one-line
+ * items, each with its own page — so it is the ticker.
  */
-const TEASERS = new Set(['mainItemNews', 'regularTeaser', 'opinionRoundTeaser']);
+const TEASERS = new Set(['mainItemNews', 'regularTeaser', 'opinionRoundTeaser', 'shortItem']);
 
 /**
  * N12 names its blocks: `mainComponentNews` is the lead, and
  * `mainComponentItems` is the headline column beside it (it pulls from the
- * lead's own ordering). The flashes and reporters' chat load in the browser,
- * so the server HTML has no ticker.
+ * lead's own ordering). Flashes (`shortItem`) are the ticker wherever they sit.
  */
 const SLOTS: Record<string, Slot> = { mainComponentNews: 'lead', mainComponentItems: 'top' };
 
@@ -46,7 +45,9 @@ function jerusalemToIso(local: string): string | undefined {
 
 function toItem(t: any, slot: Slot): FrontItem | null {
   if (!TEASERS.has(t.itemType)) return null;
-  const url = canonical(String(t.itemUrl?.url ?? ''), BASE);
+  const flash = t.itemType === 'shortItem';
+  // Flashes carry their page only in the click-tracking record.
+  const url = canonical(String(t.itemUrl?.url ?? t.domoClick?.clicked_item_url ?? ''), BASE);
   const title = clean(t.title?.text);
   if (!url || !title) return null;
   const { hostname, pathname } = new URL(url);
@@ -59,12 +60,14 @@ function toItem(t: any, slot: Slot): FrontItem | null {
   return {
     url,
     title,
-    slot,
+    slot: flash ? 'ticker' : slot,
     section: sub ? `money/${sub}` : pathname.split('/')[1].replace(/^news-/, ''),
     isNews: !SOFT.test(pathname),
     blurb: clean(t.subTitle?.text ?? t.subtitle?.text) || undefined,
     imageUrl: typeof pic === 'string' && pic.startsWith('http') ? pic : undefined,
-    publishedAt: jerusalemToIso(String(t.date?.datetime ?? '')),
+    publishedAt: flash && t.flach?.timestamp
+      ? new Date(Number(t.flach.timestamp)).toISOString()
+      : jerusalemToIso(String(t.date?.datetime ?? '')),
   };
 }
 
