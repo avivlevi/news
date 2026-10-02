@@ -47,14 +47,18 @@ async function fetchHtml(url: string): Promise<string | null> {
   return null;
 }
 
-async function download(url: string): Promise<CachedBody | null> {
+/** What the comparison model reads of each article. The archive keeps more. */
+const MODEL_CHARS = 7000;
+
+/** Fetch and extract one article, up to `maxChars` of text. Null on paywall, bot-wall or a page with no article. */
+export async function readArticle(url: string, maxChars = MODEL_CHARS): Promise<CachedBody | null> {
   const html = await fetchHtml(url);
   if (!html) return null;
   try {
     const art = await extractFromHtml(html, url);
     const text = toText(art?.content ?? '');
     if (text.length < 200) return null;
-    return { text: text.slice(0, 7000), image: art?.image || undefined, fetchedAt: new Date().toISOString() };
+    return { text: text.slice(0, maxChars), image: art?.image || undefined, fetchedAt: new Date().toISOString() };
   } catch {
     return null;
   }
@@ -68,8 +72,9 @@ async function download(url: string): Promise<CachedBody | null> {
 export async function fetchBody(url: string, fallback: string, cache: PipelineCache): Promise<Body> {
   const cached = await cache.getBody(url).catch(() => null);
   const fresh = cached && Date.now() - new Date(cached.fetchedAt).getTime() < BODY_TTL_MS;
-  const body = fresh ? cached : await download(url);
+  const body = fresh ? cached : await readArticle(url);
   if (body && !fresh) await cache.setBody(url, body).catch(() => {});
   if (!body) return { text: fallback, read: 'blurb' };
-  return { text: body.text, image: body.image, read: 'full', wordCount: countWords(body.text) };
+  const text = body.text.slice(0, MODEL_CHARS);
+  return { text, image: body.image, read: 'full', wordCount: countWords(body.text) };
 }

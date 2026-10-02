@@ -28,3 +28,6 @@ dist-ssr
 
 # Local pipeline output
 data/
+
+# Supabase CLI state
+supabase/.temp

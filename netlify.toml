@@ -35,6 +35,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/frontpage"
+  to = "/.netlify/functions/frontpage"
+  status = 200
+
+[[redirects]]
+  from = "/api/edits"
+  to = "/.netlify/functions/edits"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

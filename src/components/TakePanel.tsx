@@ -1,11 +1,13 @@
 import type { OutletTake } from '@/types';
 import { sourceColor, sourceName } from '@/lib/sources';
-import { stamp } from '@/lib/time';
+import { clock, stamp } from '@/lib/time';
+import { headlineVersions } from '@/lib/exposure';
 import { OutletLogo } from './OutletLogo';
 
 /** One outlet's article, in its own words. Nothing here is our sentence. */
 export function TakePanel({ take }: { take: OutletTake }) {
   const blurb = take.bodyRead === 'blurb';
+  const headlines = headlineVersions(take.exposure?.titles);
   return (
     <article className="take" style={{ '--brand': sourceColor(take.source) } as React.CSSProperties}>
       <header className="take__head">
@@ -21,6 +23,19 @@ export function TakePanel({ take }: { take: OutletTake }) {
       <a className="take__headline" href={take.url} target="_blank" rel="noopener noreferrer">
         {take.title}
       </a>
+
+      {headlines.distinct.length > 1 && (
+        <div className="take__titles">
+          <span className="key">
+            הכותרות שהעמוד הראשי נתן לכתבה{headlines.alternating && ' · הוצגו לסירוגין'}
+          </span>
+          <ol>
+            {headlines.distinct.map((v, i) => (
+              <li key={i}><time>{clock(v.at)}</time><q>{v.title}</q></li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {take.lede && <p className="take__lede">{take.lede}</p>}
 

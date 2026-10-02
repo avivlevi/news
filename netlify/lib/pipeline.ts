@@ -5,7 +5,8 @@ import { type PipelineCache, noCache } from './cache.js';
 import { mapLimit } from './concurrency.js';
 import { buildDigest } from './digest.js';
 import { fetchBody, type Body } from './extract.js';
-import { fetchAllFeeds, resolveGoogleUrls, type RawArticle } from './feeds.js';
+import { attachExposure, collectArticles, withStoredBodies } from './collect.js';
+import { resolveGoogleUrls, type RawArticle } from './feeds.js';
 import { runIdFor } from './history.js';
 import { makeClient } from './llm.js';
 import { matchStories, mergeGroups, type MatchGroup } from './match.js';
@@ -42,18 +43,19 @@ async function readBodies(groups: MatchGroup[], articles: RawArticle[], cache: P
 
 export async function buildStories(apiKey: string, opts: PipelineOptions = {}): Promise<StoriesPayload> {
   const t0 = Date.now();
-  const cache = opts.cache ?? noCache;
+  let cache = opts.cache ?? noCache;
   const client = makeClient(apiKey);
   const report = async (stage: string, detail: string) => {
     console.log(`${stage}: ${detail}`);
     await opts.onProgress?.(stage, detail);
   };
 
-  await report('collecting', 'אוסף כתבות מהמקורות');
-  const [{ articles, live }, previous] = await Promise.all([
-    fetchAllFeeds(opts.perSource ?? PER_SOURCE),
+  await report('collecting', 'סורק את העמודים הראשיים');
+  const [{ articles, live, bodies: stored }, previous] = await Promise.all([
+    collectArticles(opts.perSource ?? PER_SOURCE),
     opts.noReuse ? Promise.resolve([] as Story[]) : cache.previousStories().catch(() => [] as Story[]),
   ]);
+  cache = withStoredBodies(cache, stored);
 
   // The digest reads every article and the matcher only needs the same list,
   // so the two run together rather than one after the other.
@@ -100,6 +102,7 @@ export async function buildStories(apiKey: string, opts: PipelineOptions = {}): 
     ...work.flatMap(w => (w.reuse ? [w.reuse] : [])),
     ...settled.flatMap(s => (s ? [s] : [])),
   ].sort((a, b) => b.reportedAt.localeCompare(a.reportedAt));
+  await attachExposure(stories);
 
   const seconds = Math.round((Date.now() - t0) / 1000);
   await report('done', `${stories.length} אירועים`);

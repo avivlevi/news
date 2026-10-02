@@ -252,9 +252,9 @@ async function fetchSource(id: SourceId): Promise<RawArticle[]> {
  * source no story appears on two outlets at once, so cross-source comparison
  * finds nothing at all. Every outlet contributes its newest `perSource`.
  */
-export async function fetchAllFeeds(perSource: number): Promise<FeedResult> {
+export async function fetchAllFeeds(perSource: number, sources: SourceId[] = ALL_SOURCES): Promise<FeedResult> {
   const results = await Promise.allSettled(
-    ALL_SOURCES.map(async id => {
+    sources.map(async id => {
       const parsed = await fetchSource(id);
       // Several feeds can carry the same item; the newest `perSource` win.
       const seen = new Set<string>();
@@ -269,8 +269,8 @@ export async function fetchAllFeeds(perSource: number): Promise<FeedResult> {
   const articles: RawArticle[] = [];
   const live: SourceId[] = [];
   for (const [i, r] of results.entries()) {
-    if (r.status === 'fulfilled') { articles.push(...r.value); live.push(ALL_SOURCES[i]); }
-    else console.warn(`feed failed: ${ALL_SOURCES[i]} — ${r.reason}`);
+    if (r.status === 'fulfilled') { articles.push(...r.value); live.push(sources[i]); }
+    else console.warn(`feed failed: ${sources[i]} — ${r.reason}`);
   }
   return { articles, live };
 }

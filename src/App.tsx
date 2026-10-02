@@ -10,6 +10,9 @@ import { StoryCard } from '@/components/StoryCard';
 import { Digest } from '@/components/Digest';
 import { Lexicon } from '@/components/Lexicon';
 import { Coverage } from '@/components/Coverage';
+import { FrontPage } from '@/components/FrontPage';
+import { Bubble } from '@/components/Bubble';
+import { Edits } from '@/components/Edits';
 import './app.css';
 
 type Theme = 'light' | 'dark';
@@ -125,6 +128,9 @@ export default function App() {
     return { events, lexicon: buildLexicon(events), coverage: buildCoverage(events, outlets), outlets };
   }, [runs]);
 
+  /** Views built from the selected run; the others read the front-page record directly. */
+  const runView = view === 'events' || view === 'digest' || view === 'bubble';
+
   const counts = {
     events: feed?.total ?? 0,
     digest: data?.digest?.length ?? 0,
@@ -147,16 +153,16 @@ export default function App() {
       <Tabs view={view} onChange={setView} counts={counts} />
 
       <main className="main">
-        {state.status === 'loading' && <p className="notice">טוען…</p>}
+        {runView && state.status === 'loading' && <p className="notice">טוען…</p>}
 
-        {state.status === 'empty' && (
+        {runView && state.status === 'empty' && (
           <div className="notice">
             <p className="notice__lead">עוד לא נאספו כתבות.</p>
             <p>לחץ על «אסוף חדשות עכשיו» כדי להתחיל. האיסוף אורך דקה עד שלוש.</p>
           </div>
         )}
 
-        {state.status === 'error' && (
+        {runView && state.status === 'error' && (
           <div className="notice">
             <p className="notice__lead">לא הצלחנו לטעון את הנתונים.</p>
             <p>רענן את העמוד כדי לנסות שוב. ({state.message})</p>
@@ -200,6 +206,10 @@ export default function App() {
             <Digest entries={feed.digest} />
           </>
         )}
+
+        {view === 'front' && <FrontPage />}
+        {view === 'edits' && <Edits />}
+        {data && view === 'bubble' && <Bubble stories={data.stories} />}
 
         {view === 'lexicon' && <Lexicon entries={history.lexicon} runs={runs.length} />}
         {view === 'coverage' && <Coverage events={history.events} coverage={history.coverage} outlets={history.outlets} />}

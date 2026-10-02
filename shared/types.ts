@@ -3,6 +3,33 @@ export type SourceId = 'ynet' | 'n12' | 'c14' | 'haaretz' | 'i24' | 't13';
 /** Bumped whenever the analysis output changes shape. Older stories are re-analysed, never reused. */
 export const STORY_SCHEMA = 2;
 
+/**
+ * Where an item sat on its outlet's front page. Order alone carries most of
+ * the signal; the slot says which visual block it was in.
+ *
+ * - `lead`   the single main story the page opens with
+ * - `top`    the block of headline stories directly around the lead
+ * - `main`   everything else in the page body
+ * - `ticker` a running list of short flashes (מבזקים) beside the body
+ */
+export type Slot = 'lead' | 'top' | 'main' | 'ticker';
+
+/** How long and how prominently an article was on its outlet's front page. Measured, not judged. */
+export interface Exposure {
+  firstSeen: string;
+  lastSeen: string;
+  /** 1 is the top of the page. */
+  bestPosition: number;
+  bestSlot: Slot;
+  /** Hourly scrapes it appeared in, out of that outlet's scrapes between first and last sighting. */
+  snapshotsSeen: number;
+  snapshotsTotal: number;
+  leadSnapshots: number;
+  onFrontNow: boolean;
+  /** Every headline the front page gave it, oldest first. More than one means it was retitled. */
+  titles: { title: string; at: string }[];
+}
+
 /** How the article body was read for this take. */
 export type BodyRead = 'full' | 'blurb';
 
@@ -34,6 +61,8 @@ export interface OutletTake {
   characterisations: string[];
   /** Named people and bodies actually quoted. */
   voices: string[];
+  /** Absent when the article never appeared on the front page, or for runs before the front-page record. */
+  exposure?: Exposure;
 }
 
 /** A claim some outlets reported and others did not. */
@@ -118,4 +147,59 @@ export interface RunStatus {
   detail: string;
   startedAt: string | null;
   finishedAt: string | null;
+}
+
+/** One item of one hourly front-page scrape. */
+export interface FrontRow {
+  source: SourceId;
+  takenAt: string;
+  position: number;
+  slot: Slot;
+  title: string;
+  url: string;
+  isNews: boolean;
+  section: string;
+}
+
+export interface FrontHealth {
+  source: SourceId;
+  takenAt: string;
+  itemCount: number;
+  error: string | null;
+}
+
+export interface FrontPayload {
+  from: string;
+  to: string;
+  rows: FrontRow[];
+  health: FrontHealth[];
+}
+
+export interface HeadlineChange {
+  source: SourceId;
+  url: string;
+  isNews: boolean;
+  bestSlot: Slot;
+  bestPosition: number;
+  firstSeen: string;
+  lastSeen: string;
+  versions: { title: string; at: string }[];
+}
+
+/** Shown in the lead or top block, then gone from the page within one scrape. */
+export interface ShortLived {
+  source: SourceId;
+  url: string;
+  title: string;
+  isNews: boolean;
+  bestSlot: Slot;
+  bestPosition: number;
+  firstSeen: string;
+  lastSeen: string;
+}
+
+export interface EditsPayload {
+  since: string;
+  changes: HeadlineChange[];
+  shortLived: ShortLived[];
 }
